@@ -1,15 +1,16 @@
-use itertools::{all, Itertools};
-use regex::Regex;
+use itertools::{Itertools};
 use std::collections::HashSet;
-use std::fmt::format;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use num_format::{Locale, ToFormattedString};
+use rayon::prelude::*;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 const NORMAL: char = '.';
 const BROKEN: char = '#';
 const UNKNOWN: char = '?';
+static NUM_LINES_PROCESSED: AtomicU32 = AtomicU32::new(0);
 
 struct LineData {
     status: String,
@@ -44,7 +45,7 @@ fn main() {
     unsafe {
         //Calculate result and print answer
         let match_sums = all_data
-            .iter()
+            .par_iter()
             .map(|x| calc_num_matches(x))
             .sum::<usize>();
         println!("The match sum total is {}", match_sums.to_formatted_string(&Locale::en));
@@ -105,9 +106,8 @@ fn generate_test_string(test_case: &Vec<bool>, unknown_indices: &Vec<usize>, lin
     return String::from_iter(test_string_builder);
 }
 
-static mut iteration: usize = 0usize;
 unsafe fn calc_num_matches(line_data: &LineData) -> usize {
-    let test_case_is_match = |index, test_case| -> bool {
+    let test_case_is_match = |test_case| -> bool {
         let test_string = generate_test_string(&test_case, line_data.get_unknown_indices(), line_data.get_status());
         let test_continuous_broken_lengths = test_string
             .split(&NORMAL.to_string())
@@ -118,13 +118,12 @@ unsafe fn calc_num_matches(line_data: &LineData) -> usize {
         return test_continuous_broken_lengths == line_data.continuous_broken_lengths;
     };
 
-    iteration += 1;
-    println!("Iteration = {}", iteration);
+    let previous_value = NUM_LINES_PROCESSED.fetch_add(1, Ordering::Acquire);
+    println!("Num lines processed = {}", previous_value + 1);
 
     let matches = generate_boolean_vector_permutations(line_data.get_unknown_indices().len())
         .into_iter()
-        .enumerate()
-        .map(|(index, test_case)| test_case_is_match(index, test_case))
+        .map(|test_case| test_case_is_match(test_case))
         .filter(|x| *x)
         .collect_vec();
 

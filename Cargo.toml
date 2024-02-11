@@ -96,9 +96,15 @@ path = "src/day11_part2/main.rs"
 name = "day12_part1"
 path = "src/day12_part1/main.rs"
 
+[[bin]]
+name = "day12_part2"
+path = "src/day12_part2/main.rs"
+
 [dependencies]
 num-format = "0.4.4"
 regex = "1.10.2"
 itertools = "0.12.0"
 num = "0.4.1"
 lazy_static = "1.4.0"
+rayon = "1.8.1"
+log = "0.4.20"
