@@ -35,7 +35,7 @@ fn main() {
     let path = Path::new("src/day12_part1/input.txt");
     let all_data = parse_data(&path);
     let mut result_cache = HashMap::<TreePosition, IntermediateResult>::new();
-    calculate_continuous_broken_spring_lengths(&all_data[0].get_status(), 0, true, &mut result_cache, &all_data[0].get_continuous_broken_lengths());
+    calculate_continuous_broken_spring_lengths(&all_data[1].get_status(), 0, true, &mut result_cache, &all_data[1].get_continuous_broken_lengths());
     println!("The count is {}", BROKEN_PATTERN_MATCH_COUNT.load(Acquire))
 
     /*
@@ -111,7 +111,7 @@ fn calculate_local_result(status: &String, offset:usize, unknown_match_result: &
         //Unknown here means spring unknown character
         Some(unknown_substring_index) => {
             let unknown_status_index = offset + unknown_substring_index;
-            test_string = (&status[offset..=unknown_status_index - 1]).to_owned() + &if *spring_option { NORMAL.to_string() } else { BROKEN.to_string() };
+            test_string = (&status[offset..=unknown_status_index - 1]).to_owned() + &if spring_option { NORMAL.to_string() } else { BROKEN.to_string() };
             end_index = unknown_status_index;
         },
         None => {
@@ -167,7 +167,11 @@ fn calculate_cumulative_result(parent_result: &(Vec<usize>, bool), local_broken_
 fn is_possible_path(current_lengths: &Vec<usize>, all_lengths: &Vec<usize>) -> bool {
     let broken_vec_length = current_lengths.len();
 
-    if broken_vec_length == 0 || broken_vec_length > all_lengths.len() {
+    if broken_vec_length == 0 {
+        return true;
+    }
+
+    if broken_vec_length > all_lengths.len() {
         return false;
     }
 
