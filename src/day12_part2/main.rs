@@ -1,42 +1,46 @@
 mod line_data;
 
 use crate::line_data::*;
-use itertools::{Itertools};
+use itertools::{cloned, Itertools};
 use std::collections::{HashSet, HashMap};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::iter;
 use std::path::Path;
+use lazy_static::lazy_static;
 use num_format::{Locale, ToFormattedString};
 use rayon::prelude::*;
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::atomic::Ordering::Acquire;
-use lazy_static::lazy_static;
-use log::debug;
 
-type TreePosition = (usize, bool);
-type IntermediateResult = (Vec<usize>, bool);
+type CacheKey = (String, Vec<usize>, bool);
 
 const NORMAL: char = '.';
 const BROKEN: char = '#';
 const UNKNOWN: char = '?';
 const LENGTHS_SEPARATOR: char = ',';
-static BROKEN_PATTERN_MATCH_COUNT: AtomicU32 = AtomicU32::new(0);
 
-lazy_static! {
-    pub static ref INITIAL_RESULT: (Vec<usize>, bool) = (Vec::<usize>::new(), true);
-    pub static ref NORMAL_SPRING_OPTIONS: Vec<bool> = Vec::from([true, false]);
-    pub static ref FINAL_SPRING_OPTIONS: Vec<bool> = Vec::from([true]);
+lazy_static!{
+    static ref NORMAL_BASE_CASE_PATTERN: Vec<usize> = vec![0];
+    static ref BROKEN_BASE_CASE_PATTERN: Vec<usize> = vec![1];
 }
-
 
 fn main() {
     //Parse data and calculated derived data
     let path = Path::new("src/day12_part1/input.txt");
     let all_data = parse_data(&path);
-    let mut result_cache = HashMap::<TreePosition, IntermediateResult>::new();
-    calculate_continuous_broken_spring_lengths(&all_data[1].get_status(), 0, true, &mut result_cache, &all_data[1].get_continuous_broken_lengths());
-    println!("The count is {}", BROKEN_PATTERN_MATCH_COUNT.load(Acquire))
+
+    let mut cache = HashMap::<CacheKey, usize>::new();
+    let normal_match_count = calculate_continuous_broken_spring_lengths(all_data[0].get_status().to_owned(), all_data[0].get_continuous_broken_lengths().to_owned(), false, &mut cache);
+    let broken_match_count = calculate_continuous_broken_spring_lengths(all_data[0].get_status().to_owned(), all_data[0].get_continuous_broken_lengths().to_owned(), true, &mut cache);
+    let match_count = normal_match_count + broken_match_count;
+
+
+    
+    let mut foo = 1;
+    foo += 1;
+    foo += 1;
+    foo += 1;
+    foo += 1;
+    foo += 1;
 
     /*
         //Calculate result and print answer
@@ -71,117 +75,85 @@ fn parse_data(path: &Path) -> Vec<LineData> {
     return all_data;
 }
 
-fn calculate_continuous_broken_spring_lengths(status: &String, offset: usize, parent_path: bool,
-    result_cache: &mut HashMap<TreePosition, IntermediateResult>, match_lengths: &Vec<usize>)
-{
-    //Init
-    let substring = &status[offset..];
-    let match_result = substring.find(&UNKNOWN.to_string());
-    let test_options: &Vec<bool> = if match_result.is_some() { &NORMAL_SPRING_OPTIONS } else { &FINAL_SPRING_OPTIONS };
+fn calculate_continuous_broken_spring_lengths(test_string: String, mut test_pattern: Vec<usize>, broken_start: bool, cache: &mut HashMap<CacheKey, usize>) -> usize {
+    let key = &(test_string.clone(), test_pattern.clone(), broken_start);
+    if cache.contains_key(key) {
+        return cache[key];
+    }
 
-    //Loop through valid path options. True = normal spring, false = broken
-    for spring_option in test_options {
-        // Calculate the cumulative result for this iteration
-        let (mut local_broken_spring_lengths, end_index, normal_end) = calculate_local_result(&status, offset, &match_result, *spring_option);
-        let parent_result = if offset == 0 { &INITIAL_RESULT } else { &result_cache[&(offset - 1, parent_path)] };
-        let cumulative_broken_lengths = calculate_cumulative_result(&parent_result, &mut local_broken_spring_lengths, substring);
+    let match_count: usize;
+    if test_string.len() > 1 {
+        let local_spring = test_string.chars().nth(0).unwrap();
+        let sub_test_string = test_string[1..test_string.len()].to_string();
 
-        //Cache the result
-        result_cache.insert((end_index, *spring_option), (cumulative_broken_lengths, normal_end));
-        let iteration_result = &result_cache[&(end_index, *spring_option)];
-
-        //Recurse or terminate
-        if end_index + 1 <= status.len() - 1 {
-           if is_possible_path(&iteration_result.0, match_lengths) {
-                calculate_continuous_broken_spring_lengths(&status, end_index + 1, *spring_option, result_cache, match_lengths);
-           }
+        if local_spring == NORMAL {
+            match_count = calculate_normal_case(sub_test_string, test_pattern, cache);
+        } else if local_spring == BROKEN {
+            match_count = calculate_broken_case(sub_test_string, test_pattern, cache);
         } else {
-            if *iteration_result.0 == *match_lengths {
-                BROKEN_PATTERN_MATCH_COUNT.fetch_add(1, Acquire);
-            }
+            match_count = calculate_normal_case(sub_test_string.clone(), test_pattern.clone(), cache) + calculate_broken_case(sub_test_string, test_pattern, cache);
         }
+    } else {
+        match_count = calculate_base_case(test_string, test_pattern, cache);
     }
+
+    return match_count;
 }
 
-fn calculate_local_result(status: &String, offset:usize, unknown_match_result: &Option<usize>, spring_option: bool) -> (Vec<usize>, usize, bool) {
-    let test_string: String;
-    let end_index: usize;
+fn calculate_normal_case(test_string: String, test_pattern: Vec<usize>, cache: &mut HashMap<CacheKey, usize>) -> usize {
+    let normal_count = calculate_continuous_broken_spring_lengths(test_string.clone(), test_pattern.clone(), false, cache);
+    let broken_count = calculate_continuous_broken_spring_lengths(test_string.clone(), test_pattern.clone(), true, cache);
+    let match_count = normal_count + broken_count;
 
-    match *unknown_match_result {
-        //Unknown here means spring unknown character
-        Some(unknown_substring_index) => {
-            let unknown_status_index = offset + unknown_substring_index;
-            test_string = (&status[offset..=unknown_status_index - 1]).to_owned() + &if spring_option { NORMAL.to_string() } else { BROKEN.to_string() };
-            end_index = unknown_status_index;
-        },
-        None => {
-            test_string = status[offset..].to_owned();
-            end_index = status.len() - 1;
-        }
-    };
+    cache.insert((test_string.clone(), test_pattern.clone(), false), normal_count);
+    cache.insert((test_string, test_pattern, true), broken_count);
 
-    let local_lengths = test_string
-        .split(&NORMAL.to_string())
-        .filter(|x| !x.is_empty())
-        .map(|x| x.len())
-        .collect_vec();
-    let normal_end = test_string.chars().last().unwrap() == NORMAL;
-
-    return (local_lengths, end_index, normal_end);
+    return match_count;
 }
 
-fn calculate_cumulative_result(parent_result: &(Vec<usize>, bool), local_broken_spring_lengths: &mut Vec<usize>,
-    substring: &str) -> Vec<usize>
-{
-    return match parent_result.1 {
-        true => {
-            let mut temp = parent_result.0.clone();
-            temp.append(local_broken_spring_lengths);
+fn calculate_broken_case(test_string: String, mut test_pattern: Vec<usize>, cache: &mut HashMap<CacheKey, usize>) -> usize {
+    let match_count: usize;
 
-            temp
-        },
-        false => {
-            match local_broken_spring_lengths.len() {
-                0 => parent_result.0.to_owned(),
-                _ => {
-                    let mut temp = parent_result.0[0..parent_result.0.len() - 1].to_owned();
+    if test_pattern[0] > 1 {
+        test_pattern[0] -= 1;
+        match_count = calculate_continuous_broken_spring_lengths(test_string.clone(), test_pattern.clone(), true, cache);
 
-                    if substring.chars().nth(0).unwrap() == NORMAL {
-                        temp.push(parent_result.0[parent_result.0.len() - 1]);
-                        temp.push(local_broken_spring_lengths[0]);
-                    } else {
-                        temp.push(parent_result.0[parent_result.0.len() - 1] + local_broken_spring_lengths[0]);
-                    }
+        cache.insert((test_string, test_pattern, true), match_count);
+    } else if test_pattern.len() > 1 {
+        let sub_test_pattern = test_pattern[1..test_pattern.len()].to_owned();
 
-                    if local_broken_spring_lengths.len() >= 2 {
-                        temp.extend_from_slice(&local_broken_spring_lengths[1..]);
-                    }
+        let normal_count = calculate_continuous_broken_spring_lengths(test_string.clone(), sub_test_pattern.clone(), false, cache);
+        let broken_count = calculate_continuous_broken_spring_lengths(test_string.clone(), sub_test_pattern.clone(), true, cache);
+        match_count = normal_count + broken_count;
 
-                    temp
-                }
-            }
-        }
-    };
+        cache.insert((test_string.clone(), sub_test_pattern.clone(), false), normal_count);
+        cache.insert((test_string, sub_test_pattern, true), broken_count);
+    } else {
+        let sub_test_pattern = vec![0];
+        match_count = calculate_continuous_broken_spring_lengths(test_string.clone(), sub_test_pattern.clone(), false, cache);
+
+        cache.insert((test_string, sub_test_pattern, false), match_count);
+    }
+
+    return match_count;
 }
 
-fn is_possible_path(current_lengths: &Vec<usize>, all_lengths: &Vec<usize>) -> bool {
-    let broken_vec_length = current_lengths.len();
-
-    if broken_vec_length == 0 {
-        return true;
+fn calculate_base_case(test_string: String, test_pattern: Vec<usize>, cache: &mut HashMap<CacheKey, usize>) -> usize {
+    if test_string.len() > 1 {
+        panic!("Something is wrong. The test string length is > 1");
     }
 
-    if broken_vec_length > all_lengths.len() {
-        return false;
+    let match_count: usize;
+
+    if test_pattern.len() > 1 {
+        match_count = 0;
+    } else if test_string.chars().nth(0).unwrap() == NORMAL {
+        match_count = if test_pattern == *NORMAL_BASE_CASE_PATTERN { 1 } else { 0 };
+    } else if test_string.chars().nth(0).unwrap() == BROKEN {
+        match_count = if test_pattern == *BROKEN_BASE_CASE_PATTERN { 1 } else { 0 };
+    } else {
+        match_count = 1;
     }
 
-    let mut possible = true;
-    if broken_vec_length > 1 {
-        for index in 0..broken_vec_length - 1 {
-            possible &= current_lengths[index] == all_lengths[index];
-        }
-    }
-    possible &= current_lengths[broken_vec_length - 1] <= all_lengths[broken_vec_length - 1];
-
-    return possible;
+    return match_count;
 }
