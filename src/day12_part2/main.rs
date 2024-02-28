@@ -29,12 +29,13 @@ fn main() {
     let all_data = parse_data(&path);
 
     let mut cache = HashMap::<CacheKey, usize>::new();
-    let normal_match_count = calculate_continuous_broken_spring_lengths(all_data[0].get_status().to_owned(), all_data[0].get_continuous_broken_lengths().to_owned(), false, &mut cache);
-    let broken_match_count = calculate_continuous_broken_spring_lengths(all_data[0].get_status().to_owned(), all_data[0].get_continuous_broken_lengths().to_owned(), true, &mut cache);
+    //all_data[0].get_status().clone(), all_data[0].get_continuous_broken_lengths().clone()
+    let normal_match_count = calculate_continuous_broken_spring_lengths(all_data[0].get_status().clone(), all_data[0].get_continuous_broken_lengths().clone(), false, &mut cache);
+    let broken_match_count = calculate_continuous_broken_spring_lengths(all_data[0].get_status().clone(), all_data[0].get_continuous_broken_lengths().clone(), true, &mut cache);
     let match_count = normal_match_count + broken_match_count;
+    println!("Match count = {}", match_count);
 
 
-    
     let mut foo = 1;
     foo += 1;
     foo += 1;
@@ -82,31 +83,49 @@ fn calculate_continuous_broken_spring_lengths(test_string: String, mut test_patt
     }
 
     let match_count: usize;
-    if test_string.len() > 1 {
+
+    if broken_start && test_string.chars().nth(0).unwrap() == NORMAL {
+        match_count = 0;
+    } else if !broken_start && test_string.chars().nth(0).unwrap() == BROKEN {
+        match_count = 0;
+    }
+    else {
         let local_spring = test_string.chars().nth(0).unwrap();
-        let sub_test_string = test_string[1..test_string.len()].to_string();
 
         if local_spring == NORMAL {
-            match_count = calculate_normal_case(sub_test_string, test_pattern, cache);
+            match_count = calculate_normal_case(test_string.clone(), test_pattern.clone(), cache);
         } else if local_spring == BROKEN {
-            match_count = calculate_broken_case(sub_test_string, test_pattern, cache);
+            match_count = calculate_broken_case(test_string.clone(), test_pattern.clone(), cache);
         } else {
-            match_count = calculate_normal_case(sub_test_string.clone(), test_pattern.clone(), cache) + calculate_broken_case(sub_test_string, test_pattern, cache);
+            let mut normal_test_string = test_string.clone();
+            let mut broken_test_string = test_string.clone();
+            normal_test_string.replace_range(0..1, &NORMAL.to_string());
+            broken_test_string.replace_range(0..1, &BROKEN.to_string());
+
+            match_count = calculate_continuous_broken_spring_lengths(normal_test_string, test_pattern.clone(), broken_start, cache) +
+                calculate_continuous_broken_spring_lengths(broken_test_string, test_pattern.clone(), broken_start, cache)
         }
-    } else {
-        match_count = calculate_base_case(test_string, test_pattern, cache);
     }
 
+    //println!("Test string = {}, test pattern {:?}, broken start = {}, count = {}", &test_string, &test_pattern, broken_start, &match_count);
     return match_count;
 }
 
 fn calculate_normal_case(test_string: String, test_pattern: Vec<usize>, cache: &mut HashMap<CacheKey, usize>) -> usize {
-    let normal_count = calculate_continuous_broken_spring_lengths(test_string.clone(), test_pattern.clone(), false, cache);
-    let broken_count = calculate_continuous_broken_spring_lengths(test_string.clone(), test_pattern.clone(), true, cache);
-    let match_count = normal_count + broken_count;
+    let match_count: usize;
 
-    cache.insert((test_string.clone(), test_pattern.clone(), false), normal_count);
-    cache.insert((test_string, test_pattern, true), broken_count);
+    if test_string.len() > 1 {
+        let sub_test_string = test_string[1..test_string.len()].to_string();
+        let normal_count = calculate_continuous_broken_spring_lengths(sub_test_string.clone(), test_pattern.clone(), false, cache);
+        let broken_count = calculate_continuous_broken_spring_lengths(sub_test_string.clone(), test_pattern.clone(), true, cache);
+
+        match_count = normal_count + broken_count;
+        conditionally_update_cache(cache, (sub_test_string.clone(), test_pattern.clone(), false), normal_count);
+        conditionally_update_cache(cache, (sub_test_string, test_pattern, true), broken_count);
+    } else {
+        match_count = if test_pattern == *NORMAL_BASE_CASE_PATTERN { 1 } else { 0 };
+        conditionally_update_cache(cache, (test_string, test_pattern, false), match_count);
+    }
 
     return match_count;
 }
@@ -114,46 +133,32 @@ fn calculate_normal_case(test_string: String, test_pattern: Vec<usize>, cache: &
 fn calculate_broken_case(test_string: String, mut test_pattern: Vec<usize>, cache: &mut HashMap<CacheKey, usize>) -> usize {
     let match_count: usize;
 
-    if test_pattern[0] > 1 {
-        test_pattern[0] -= 1;
-        match_count = calculate_continuous_broken_spring_lengths(test_string.clone(), test_pattern.clone(), true, cache);
+    if test_string.len() > 1 {
+        let sub_test_string = test_string[1..test_string.len()].to_string();
 
-        cache.insert((test_string, test_pattern, true), match_count);
-    } else if test_pattern.len() > 1 {
-        let sub_test_pattern = test_pattern[1..test_pattern.len()].to_owned();
-
-        let normal_count = calculate_continuous_broken_spring_lengths(test_string.clone(), sub_test_pattern.clone(), false, cache);
-        let broken_count = calculate_continuous_broken_spring_lengths(test_string.clone(), sub_test_pattern.clone(), true, cache);
-        match_count = normal_count + broken_count;
-
-        cache.insert((test_string.clone(), sub_test_pattern.clone(), false), normal_count);
-        cache.insert((test_string, sub_test_pattern, true), broken_count);
+        if test_pattern[0] > 1 {
+            test_pattern[0] -= 1;
+            match_count = calculate_continuous_broken_spring_lengths(sub_test_string.clone(), test_pattern.clone(), true, cache);
+            conditionally_update_cache(cache, (sub_test_string, test_pattern, true), match_count);
+        } else if test_pattern.len() > 1 {
+            let sub_test_pattern = test_pattern[1..test_pattern.len()].to_owned();
+            match_count = calculate_continuous_broken_spring_lengths(sub_test_string.clone(), sub_test_pattern.clone(), false, cache);
+            conditionally_update_cache(cache, (sub_test_string.clone(), sub_test_pattern.clone(), false), match_count);
+        } else {
+            let sub_test_pattern = vec![0];
+            match_count = calculate_continuous_broken_spring_lengths(sub_test_string.clone(), sub_test_pattern.clone(), false, cache);
+            conditionally_update_cache(cache, (sub_test_string, sub_test_pattern, false), match_count);
+        }
     } else {
-        let sub_test_pattern = vec![0];
-        match_count = calculate_continuous_broken_spring_lengths(test_string.clone(), sub_test_pattern.clone(), false, cache);
-
-        cache.insert((test_string, sub_test_pattern, false), match_count);
+        match_count = if test_pattern == *BROKEN_BASE_CASE_PATTERN { 1 } else { 0 };
+        conditionally_update_cache(cache, (test_string, test_pattern, true), match_count);
     }
 
     return match_count;
 }
 
-fn calculate_base_case(test_string: String, test_pattern: Vec<usize>, cache: &mut HashMap<CacheKey, usize>) -> usize {
-    if test_string.len() > 1 {
-        panic!("Something is wrong. The test string length is > 1");
+fn conditionally_update_cache(cache: &mut HashMap<CacheKey, usize>, key: CacheKey, value: usize) {
+    if !cache.contains_key(&key) {
+        cache.insert(key, value);
     }
-
-    let match_count: usize;
-
-    if test_pattern.len() > 1 {
-        match_count = 0;
-    } else if test_string.chars().nth(0).unwrap() == NORMAL {
-        match_count = if test_pattern == *NORMAL_BASE_CASE_PATTERN { 1 } else { 0 };
-    } else if test_string.chars().nth(0).unwrap() == BROKEN {
-        match_count = if test_pattern == *BROKEN_BASE_CASE_PATTERN { 1 } else { 0 };
-    } else {
-        match_count = 1;
-    }
-
-    return match_count;
 }
