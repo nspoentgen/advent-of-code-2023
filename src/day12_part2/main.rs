@@ -1,15 +1,16 @@
 mod line_data;
 
+#[macro_use]
+extern crate timeit;
+
 use crate::line_data::*;
-use itertools::{cloned, Itertools};
-use std::collections::{HashSet, HashMap};
+use itertools::{Itertools};
+use std::collections::{HashMap};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::iter;
 use std::path::Path;
 use lazy_static::lazy_static;
 use num_format::{Locale, ToFormattedString};
-use rayon::prelude::*;
 
 type CacheKey = (String, Vec<usize>, bool);
 
@@ -24,34 +25,21 @@ lazy_static!{
 }
 
 fn main() {
-    //Parse data and calculated derived data
-    let path = Path::new("src/day12_part1/input.txt");
-    let all_data = parse_data(&path);
+    timeit!({
+        //Parse data and calculated derived data
+        let path = Path::new("src/day12_part1/input.txt");
+        let all_data = parse_data(&path);
 
-    let mut cache = HashMap::<CacheKey, usize>::new();
-    //all_data[0].get_status().clone(), all_data[0].get_continuous_broken_lengths().clone()
-    let normal_match_count = calculate_continuous_broken_spring_lengths(all_data[0].get_status().clone(), all_data[0].get_continuous_broken_lengths().clone(), false, &mut cache);
-    let broken_match_count = calculate_continuous_broken_spring_lengths(all_data[0].get_status().clone(), all_data[0].get_continuous_broken_lengths().clone(), true, &mut cache);
-    let match_count = normal_match_count + broken_match_count;
-    println!("Match count = {}", match_count);
-
-
-    let mut foo = 1;
-    foo += 1;
-    foo += 1;
-    foo += 1;
-    foo += 1;
-    foo += 1;
-
-    /*
         //Calculate result and print answer
-    let match_sums = all_data
-        .iter()
-        .map(|x| calc_num_matches(x))
-        .sum::<usize>();
-    println!("The match sum total is {}", match_sums.to_formatted_string(&Locale::en));
-     */
+        let mut cache = HashMap::<CacheKey, usize>::new();
+        let match_sums = all_data
+            .iter()
+            .map(|x| calculate_continuous_broken_spring_lengths(x.get_status().clone(), x.get_continuous_broken_lengths().clone(), false, &mut cache) +
+                calculate_continuous_broken_spring_lengths(x.get_status().clone(), x.get_continuous_broken_lengths().clone(), true, &mut cache))
+            .sum::<usize>();
 
+        println!("The match sum total is {}", match_sums.to_formatted_string(&Locale::en));
+    });
 }
 
 fn parse_data(path: &Path) -> Vec<LineData> {
@@ -60,7 +48,6 @@ fn parse_data(path: &Path) -> Vec<LineData> {
     let file = File::open(&path).unwrap();
     for line in BufReader::new(file).lines().flatten() {
         let line_parts = line.split(" ").collect_vec();
-
 
         let status = line_parts[0].to_string();
         let expanded_status = vec![status; 5].join("?");
@@ -76,7 +63,7 @@ fn parse_data(path: &Path) -> Vec<LineData> {
     return all_data;
 }
 
-fn calculate_continuous_broken_spring_lengths(test_string: String, mut test_pattern: Vec<usize>, broken_start: bool, cache: &mut HashMap<CacheKey, usize>) -> usize {
+fn calculate_continuous_broken_spring_lengths(test_string: String, test_pattern: Vec<usize>, broken_start: bool, cache: &mut HashMap<CacheKey, usize>) -> usize {
     let key = &(test_string.clone(), test_pattern.clone(), broken_start);
     if cache.contains_key(key) {
         return cache[key];
@@ -133,7 +120,10 @@ fn calculate_normal_case(test_string: String, test_pattern: Vec<usize>, cache: &
 fn calculate_broken_case(test_string: String, mut test_pattern: Vec<usize>, cache: &mut HashMap<CacheKey, usize>) -> usize {
     let match_count: usize;
 
-    if test_string.len() > 1 {
+    if test_pattern == *NORMAL_BASE_CASE_PATTERN {
+        match_count = 0;
+    }
+    else if test_string.len() > 1 {
         let sub_test_string = test_string[1..test_string.len()].to_string();
 
         if test_pattern[0] > 1 {
@@ -145,7 +135,7 @@ fn calculate_broken_case(test_string: String, mut test_pattern: Vec<usize>, cach
             match_count = calculate_continuous_broken_spring_lengths(sub_test_string.clone(), sub_test_pattern.clone(), false, cache);
             conditionally_update_cache(cache, (sub_test_string.clone(), sub_test_pattern.clone(), false), match_count);
         } else {
-            let sub_test_pattern = vec![0];
+            let sub_test_pattern = NORMAL_BASE_CASE_PATTERN.clone();
             match_count = calculate_continuous_broken_spring_lengths(sub_test_string.clone(), sub_test_pattern.clone(), false, cache);
             conditionally_update_cache(cache, (sub_test_string, sub_test_pattern, false), match_count);
         }
