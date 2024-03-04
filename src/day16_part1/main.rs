@@ -16,18 +16,24 @@ const HORIZONTAL_SPLITTER: char = '-';
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 enum BeamDirection { North, East, South, West }
 
+struct SolverInputs<'a> {
+    pub starting_pos: (usize, usize),
+    pub beam_direction: BeamDirection,
+    pub feature_map: &'a Vec<Vec<char>>,
+    pub energized_tiles: &'a mut HashSet<(usize, usize, BeamDirection)>
+}
+
 fn main() {
     //Constants
     const STARTING_POS: (usize, usize) = (0, 0);
     const STARTING_BEAM_DIRECTION: BeamDirection = East;
 
     //Parse data
-    let path = Path::new("src/day16_part1/input.txt");
+    let path = Path::new("src/day16_part1/test_input.txt");
     let feature_map = parse_data(&path);
 
     //Trace beam
-    let mut energized_tiles = HashSet::<(usize, usize, BeamDirection)>::new();
-    trace_beam(&STARTING_POS, STARTING_BEAM_DIRECTION, &feature_map, &mut energized_tiles);
+    let energized_tiles = trace_beam_solver(STARTING_POS, STARTING_BEAM_DIRECTION, &feature_map);
 
     //Print result
     let num_energized_tiles = energized_tiles
@@ -48,33 +54,57 @@ fn parse_data(path: &Path) -> Vec<Vec<char>> {
         .collect();
 }
 
-fn trace_beam(starting_pos: &(usize, usize), mut beam_direction: BeamDirection, feature_map: &Vec<Vec<char>>, energized_tiles: &mut HashSet<(usize, usize, BeamDirection)>) {
-    let row_max = feature_map.len() - 1;
-    let col_max = feature_map[0].len() - 1;
-    let mut complete = false;
-    let mut current_pos = starting_pos.clone();
+fn trace_beam_solver(starting_pos: (usize, usize), starting_beam_direction: BeamDirection, feature_map: &Vec<Vec<char>>) -> HashSet::<(usize, usize, BeamDirection)> {
+    let mut energized_tiles = HashSet::<(usize, usize, BeamDirection)>::new();
+    let mut work_stack = Vec::<SolverInputs>::new();
+    let initial_inputs = SolverInputs {
+        starting_pos: starting_pos,
+        beam_direction: starting_beam_direction,
+        feature_map: &feature_map,
+        energized_tiles: &mut energized_tiles
+    };
+    work_stack.push(initial_inputs);
 
+    while let Some(next_work_item) = work_stack.pop() {
+        let additional_work_items = trace_beam(next_work_item);
+        for work_item in additional_work_items.into_iter().rev() {
+            work_stack.push(work_item);
+        }
+    }
+
+    return energized_tiles;
+}
+
+fn trace_beam<'a>(solver_inputs: SolverInputs<'a>) -> Vec<SolverInputs<'a>>
+{
+    let row_max = solver_inputs.feature_map.len() - 1;
+    let col_max = solver_inputs.feature_map[0].len() - 1;
+    let mut complete = false;
+    let mut current_pos = solver_inputs.starting_pos.clone();
+    let mut additional_work_items = Vec::<SolverInputs<'a>>::new();
 
     while !complete {
-        energized_tiles.insert((current_pos.0, current_pos.1, beam_direction));
+        solver_inputs.energized_tiles.insert((current_pos.0, current_pos.1, solver_inputs.beam_direction));
 
         //debug_print(energized_tiles, row_max, col_max);
         //print!("\n");
 
-        let feature = feature_map[current_pos.0][current_pos.1];
+        let feature = solver_inputs.feature_map[current_pos.0][current_pos.1];
 
         if feature == EMPTY {
-            (current_pos, complete) = handle_empty_case(&current_pos, beam_direction, row_max, col_max, energized_tiles);
+            (current_pos, complete) = handle_empty_case(&current_pos, solver_inputs.beam_direction, row_max, col_max, solver_inputs.energized_tiles);
         } else if feature == REFLECTOR_45_DEG {
-            (current_pos, beam_direction, complete) = handle_reflector_45_deg_case(&current_pos, beam_direction, row_max, col_max, energized_tiles);
+            (current_pos, solver_inputs.beam_direction, complete) = handle_reflector_45_deg_case(&current_pos, solver_inputs.beam_direction, row_max, col_max, solver_inputs.energized_tiles);
         } else if feature == REFLECTOR_135_DEG {
-            (current_pos, beam_direction, complete) = handle_reflector_135_deg_case(&current_pos, beam_direction, row_max, col_max, energized_tiles);
+            (current_pos, solver_inputs.beam_direction, complete) = handle_reflector_135_deg_case(&current_pos, solver_inputs.beam_direction, row_max, col_max, solver_inputs.energized_tiles);
         } else if feature == VERTICAL_SPLITTER {
-            (current_pos, complete) = handle_vertical_splitter_case(&current_pos, beam_direction, row_max, col_max, feature_map, energized_tiles);
+            (current_pos, complete, additional_work_items) = handle_vertical_splitter_case(&current_pos, solver_inputs.beam_direction, row_max, col_max, solver_inputs.feature_map, solver_inputs.energized_tiles);
         } else {
-            (current_pos, complete) = handle_horizontal_splitter_case(&current_pos, beam_direction, row_max, col_max, feature_map, energized_tiles);
+            (current_pos, complete, additional_work_items) = handle_horizontal_splitter_case(&current_pos, solver_inputs.beam_direction, row_max, col_max, solver_inputs.feature_map, solver_inputs.energized_tiles);
         }
     }
+
+    return additional_work_items;
 }
 
 fn handle_empty_case(pos: &(usize, usize), beam_direction: BeamDirection, row_max: usize, col_max: usize,
@@ -121,39 +151,69 @@ fn handle_reflector_135_deg_case(pos: &(usize, usize), beam_direction: BeamDirec
     };
 }
 
-fn handle_vertical_splitter_case(pos: &(usize, usize), beam_direction: BeamDirection, row_max: usize, col_max: usize,
-    feature_map: &Vec<Vec<char>>, energized_tiles: &mut HashSet<(usize, usize, BeamDirection)>) -> ((usize, usize), bool)
+fn handle_vertical_splitter_case<'a>(pos: &(usize, usize), beam_direction: BeamDirection, row_max: usize, col_max: usize,
+    feature_map: &'a Vec<Vec<char>>, energized_tiles: &'a mut HashSet<(usize, usize, BeamDirection)>) -> ((usize, usize), bool, Vec<SolverInputs<'a>>)
 {
+    let mut additional_work_items = Vec::<SolverInputs<'a>>::new();
+
     return if beam_direction == North || beam_direction == South {
-        handle_empty_case(pos, beam_direction, row_max, col_max, energized_tiles)
+        let result = handle_empty_case(pos, beam_direction, row_max, col_max, energized_tiles);
+        (result.0, result.1, additional_work_items)
     } else {
         if let Some(next_pos) = checked_advance(pos, North, row_max, col_max) {
-            trace_beam(&next_pos, North, feature_map, energized_tiles);
+            let sub_problem_inputs = SolverInputs {
+                starting_pos: next_pos,
+                beam_direction: North,
+                feature_map: feature_map,
+                energized_tiles: energized_tiles
+            };
+            additional_work_items.push(sub_problem_inputs);
         }
 
         if let Some(next_pos) = checked_advance(pos, South, row_max, col_max) {
-            trace_beam(&next_pos, South, feature_map, energized_tiles);
+            let sub_problem_inputs = SolverInputs {
+                starting_pos: next_pos,
+                beam_direction: South,
+                feature_map: feature_map,
+                energized_tiles: energized_tiles
+            };
+            additional_work_items.push(sub_problem_inputs)
         }
 
-        (*pos, true)
+        (*pos, true, additional_work_items)
     };
 }
 
-fn handle_horizontal_splitter_case(pos: &(usize, usize), beam_direction: BeamDirection, row_max: usize, col_max: usize,
-    feature_map: &Vec<Vec<char>>, energized_tiles: &mut HashSet<(usize, usize, BeamDirection)>) -> ((usize, usize), bool)
+fn handle_horizontal_splitter_case<'a>(pos: &(usize, usize), beam_direction: BeamDirection, row_max: usize, col_max: usize,
+    feature_map: &'a Vec<Vec<char>>, energized_tiles: &'a mut HashSet<(usize, usize, BeamDirection)>) -> ((usize, usize), bool, Vec<SolverInputs<'a>>)
 {
+    let mut additional_work_items = Vec::<SolverInputs<'a>>::new();
+
     return if beam_direction == West || beam_direction == East {
-        handle_empty_case(pos, beam_direction, row_max, col_max, energized_tiles)
+        let result = handle_empty_case(pos, beam_direction, row_max, col_max, energized_tiles);
+        (result.0, result.1, additional_work_items)
     } else {
         if let Some(next_pos) = checked_advance(pos, West, row_max, col_max) {
-            trace_beam(&next_pos, West, feature_map, energized_tiles);
+            let sub_problem_inputs = SolverInputs {
+                starting_pos: next_pos,
+                beam_direction: West,
+                feature_map: feature_map,
+                energized_tiles: energized_tiles
+            };
+            additional_work_items.push(sub_problem_inputs);
         }
 
         if let Some(next_pos) = checked_advance(pos, East, row_max, col_max) {
-            trace_beam(&next_pos, East, feature_map, energized_tiles);
+            let sub_problem_inputs = SolverInputs {
+                starting_pos: next_pos,
+                beam_direction: East,
+                feature_map: feature_map,
+                energized_tiles: energized_tiles
+            };
+            additional_work_items.push(sub_problem_inputs);
         }
 
-        (*pos, true)
+        (*pos, true, additional_work_items)
     };
 }
 
