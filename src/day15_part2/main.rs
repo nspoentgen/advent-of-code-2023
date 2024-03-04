@@ -6,7 +6,6 @@ use num_format::{Locale, ToFormattedString};
 mod utility;
 use crate::utility::*;
 
-
 fn main() {
     //Constants
     const NUM_BOXES: usize = 256;

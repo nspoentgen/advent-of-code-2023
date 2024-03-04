@@ -11,10 +11,10 @@ const MOVABLE: char = 'O';
 const EMPTY: char = '.';
 
 enum ShiftDirection {
-    NORTH,
-    WEST,
-    SOUTH,
-    EAST
+    North,
+    West,
+    South,
+    East
 }
 
 fn main() {
@@ -33,10 +33,10 @@ fn main() {
     //module limit cycle number for the cycle
     let mut cache = HashMap::<usize, Vec<Vec<char>>>::new();
     for cycle in 0usize..(LIMIT_CYCLE_OFFSET + LIMIT_CYCLE_LENGTH) {
-        shift_rocks(&mut data, ShiftDirection::NORTH);
-        shift_rocks(&mut data, ShiftDirection::WEST);
-        shift_rocks(&mut data, ShiftDirection::SOUTH);
-        shift_rocks(&mut data, ShiftDirection::EAST);
+        shift_rocks(&mut data, ShiftDirection::North);
+        shift_rocks(&mut data, ShiftDirection::West);
+        shift_rocks(&mut data, ShiftDirection::South);
+        shift_rocks(&mut data, ShiftDirection::East);
 
         if cycle >= LIMIT_CYCLE_OFFSET {
             cache.insert(cycle - LIMIT_CYCLE_OFFSET, data.clone());
@@ -68,10 +68,10 @@ fn parse_data(path: &Path) -> Vec<Vec<char>> {
 
 fn shift_rocks(data: &mut Vec<Vec<char>>, shift_direction: ShiftDirection) {
     let (row_range, col_range, row_shift_offset, col_shift_offset): (Range<isize>, Range<isize>, isize, isize) = match shift_direction {
-        ShiftDirection::NORTH => (1..data.len() as isize, 0..data[0].len() as isize, -1, 0),
-        ShiftDirection::WEST => (0..data.len() as isize, 1..data[0].len() as isize, 0, -1),
-        ShiftDirection::SOUTH => (0..data.len() as isize - 1, 0..data[0].len() as isize, 1, 0),
-        ShiftDirection::EAST => (0..data.len() as isize, 0..data[0].len() as isize - 1, 0, 1)
+        ShiftDirection::North => (1..data.len() as isize, 0..data[0].len() as isize, -1, 0),
+        ShiftDirection::West => (0..data.len() as isize, 1..data[0].len() as isize, 0, -1),
+        ShiftDirection::South => (0..data.len() as isize - 1, 0..data[0].len() as isize, 1, 0),
+        ShiftDirection::East => (0..data.len() as isize, 0..data[0].len() as isize - 1, 0, 1)
     };
 
     let mut rock_shifted = true;
