@@ -1,8 +1,12 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
+use std::fs::File;
 use std::hash::Hash;
+use std::io::{BufReader, BufRead};
+use std::path::Path;
+use num_format::{Locale, ToFormattedString};
 use Direction::*;
 
-#[derive(Eq, PartialEq, Hash)]
+#[derive(Eq, PartialEq, Hash, Clone, Debug)]
 struct NodeState {
     pub row_index: usize,
     pub col_index: usize,
@@ -10,45 +14,99 @@ struct NodeState {
     pub straights_left: u32
 }
 
-#[derive(Eq, PartialEq, Hash, Copy, Clone)]
+#[derive(Eq, PartialEq, Hash, Copy, Clone, Debug
+
+)]
 enum Direction { North, East, South, West }
 
 const MAX_CONSECUTIVE_STRAIGHTS: u32 = 3;
 
 fn main () {
+    //Parse data
+    let path = Path::new("src/day17_part1/input.txt");
+    let heat_loss_reference = parse_data(&path);
 
+    //Get minimum using dynamic programming
+    let initial_state = NodeState {
+        row_index: 0,
+        col_index: 0,
+        direction: East,
+        straights_left: 3
+    };
+    let mut minimum_heat_loss_cache = HashMap::<NodeState, Option<u32>>::new();
+    let stack_trace = HashSet::<NodeState>::new();
+    let minimum_heat_loss = get_minimum_heat_loss(&initial_state, &mut minimum_heat_loss_cache, &heat_loss_reference, stack_trace).unwrap();
+
+    //Print answer
+    println!("The minimum heat loss is {}", minimum_heat_loss.to_formatted_string(&Locale::en))
 }
 
-fn get_minimum_heat_loss(current_state: &NodeState, visited_states: &mut HashSet<NodeState>, heat_loss_map: &Vec<Vec<u32>>) -> Option<u32> {
-    let min_heat_loss = None;
+fn parse_data(path: &Path) -> Vec<Vec<u32>> {
+    let file = File::open(&path).unwrap();
+    return BufReader::new(file)
+        .lines()
+        .flatten()
+        .into_iter()
+        .map(|line| line.chars().map(|c| c.to_digit(10).unwrap()).collect::<Vec<u32>>())
+        .collect();
+}
 
-    for next_state in get_next_valid_states(current_state, visited_states, heat_loss_map.len() - 1, heat_loss_map[0].len() - 1) {
+fn get_minimum_heat_loss(current_state: &NodeState, minimum_heat_loss_cache: &mut HashMap<NodeState, Option<u32>>, heat_loss_reference: &Vec<Vec<u32>>, mut stack_trace: HashSet<NodeState>) -> Option<u32> {
+    println!("Node = {:?}), stack depth = {}", current_state, stack_trace.iter().count());
+    stack_trace.insert(current_state.clone());
+    let mut min_heat_loss = None;
+    let mut update_cache = true;
 
+    if let Some(cached_result) = minimum_heat_loss_cache.get(current_state) {
+        min_heat_loss = *cached_result;
+        update_cache = false;
+    } else if current_state.row_index == heat_loss_reference.len() - 1 && current_state.col_index == heat_loss_reference[0].len() - 1 {
+        min_heat_loss = Some(*heat_loss_reference.last().unwrap().last().unwrap());
+        println!("Reached final node");
+    } else {
+        let mut sub_problem_min_heat_loss_option = None;
+
+        for next_state in get_next_valid_states(current_state, &stack_trace, heat_loss_reference.len() - 1, heat_loss_reference[0].len() - 1) {
+            if let Some(sub_problem_min_heat_loss) = get_minimum_heat_loss(&next_state, minimum_heat_loss_cache, heat_loss_reference, stack_trace.clone()) {
+                if sub_problem_min_heat_loss_option.is_none() || sub_problem_min_heat_loss < sub_problem_min_heat_loss_option.unwrap() {
+                    sub_problem_min_heat_loss_option = Some(sub_problem_min_heat_loss);
+                }
+            }
+        }
+
+        if let Some(sub_problem_min_heat_loss) = sub_problem_min_heat_loss_option {
+            min_heat_loss = Some(sub_problem_min_heat_loss + heat_loss_reference[current_state.row_index][current_state.col_index]);
+        }
     }
+
+    if update_cache {
+        minimum_heat_loss_cache.insert(current_state.clone(), min_heat_loss);
+    }
+    return min_heat_loss;
 }
 
-fn get_next_valid_states(current_state: &NodeState, visited_states: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Vec<NodeState> {
+fn get_next_valid_states(current_state: &NodeState, stack_trace: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Vec<NodeState> {
     let mut valid_states = Vec::<NodeState>::new();
     
     //Conditionally add left move
-    if let Some(left_move) = generate_left_move(&current_state, &visited_states, row_max, col_max) {
+    if let Some(left_move) = generate_left_move(&current_state, stack_trace, row_max, col_max) {
         valid_states.push(left_move);
     }
 
     //Conditionally add right move
-    if let Some(right_move) = generate_right_move(&current_state, &visited_states, row_max, col_max) {
+    if let Some(right_move) = generate_right_move(&current_state, stack_trace, row_max, col_max) {
         valid_states.push(right_move);
     }
 
     //Conditionally add straight move
-    if let Some(straight_move) = generate_straight_move(&current_state, &visited_states, row_max, col_max) {
+    if let Some(straight_move) = generate_straight_move(&current_state, stack_trace, row_max, col_max) {
         valid_states.push(straight_move);
     }
     
     return valid_states;
 }
 
-fn generate_left_move(current_state: &NodeState, visited_states: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
+fn generate_left_move(current_state: &NodeState, stack_trace: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
     let mut left_move_state = None;
 
     let left_move_direction: Direction = match current_state.direction {
@@ -67,8 +125,7 @@ fn generate_left_move(current_state: &NodeState, visited_states: &HashSet<NodeSt
             direction: left_move_direction,
             straights_left: MAX_CONSECUTIVE_STRAIGHTS
         };
-
-        if !visited_states.contains(&possible_state) {
+        if !stack_trace.contains(&possible_state) {
             left_move_state = Some(possible_state);
         }
     }
@@ -76,7 +133,7 @@ fn generate_left_move(current_state: &NodeState, visited_states: &HashSet<NodeSt
     return left_move_state;
 }
 
-fn generate_right_move(current_state: &NodeState, visited_states: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
+fn generate_right_move(current_state: &NodeState, stack_trace: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
     let mut right_move_state = None;
 
     let right_move_direction: Direction = match current_state.direction {
@@ -95,8 +152,7 @@ fn generate_right_move(current_state: &NodeState, visited_states: &HashSet<NodeS
             direction: right_move_direction,
             straights_left: MAX_CONSECUTIVE_STRAIGHTS
         };
-
-        if !visited_states.contains(&possible_state) {
+        if !stack_trace.contains(&possible_state) {
             right_move_state = Some(possible_state);
         }
     }
@@ -104,21 +160,21 @@ fn generate_right_move(current_state: &NodeState, visited_states: &HashSet<NodeS
     return right_move_state;
 }
 
-fn generate_straight_move(current_state: &NodeState, visited_states: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
+fn generate_straight_move(current_state: &NodeState, stack_trace: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
     let mut straight_move_state = None;
 
-    let straight_move_pos = advance_pos(current_state.row_index as isize, current_state.col_index as isize, current_state.direction);
-
-    if is_valid_state(straight_move_pos, row_max, col_max) && current_state.straights_left > 0 {
-        let possible_state = NodeState {
-            row_index: straight_move_pos.0 as usize,
-            col_index: straight_move_pos.1 as usize,
-            direction: current_state.direction,
-            straights_left: current_state.straights_left - 1
-        };
-
-        if !visited_states.contains(&possible_state) {
-            straight_move_state = Some(possible_state);
+    if current_state.straights_left > 0 {
+        let straight_move_pos = advance_pos(current_state.row_index as isize, current_state.col_index as isize, current_state.direction);
+        if is_valid_state(straight_move_pos, row_max, col_max) {
+            let possible_state = NodeState {
+                row_index: straight_move_pos.0 as usize,
+                col_index: straight_move_pos.1 as usize,
+                direction: current_state.direction,
+                straights_left: current_state.straights_left - 1,
+            };
+            if !stack_trace.contains(&possible_state) {
+                straight_move_state = Some(possible_state);
+            }
         }
     }
 
@@ -127,10 +183,10 @@ fn generate_straight_move(current_state: &NodeState, visited_states: &HashSet<No
 
 fn advance_pos(row_index: isize, col_index:isize, direction: Direction) -> (isize, isize) {
     return match direction {
-        North => (row_index as isize - 1, col_index as isize),
-        East => (row_index as isize, col_index as isize + 1),
-        South => (row_index as isize + 1, col_index as isize),
-        West => (row_index, col_index as isize - 1)
+        North => (row_index - 1, col_index),
+        East => (row_index, col_index + 1),
+        South => (row_index + 1, col_index),
+        West => (row_index, col_index - 1)
     };
 }
 
