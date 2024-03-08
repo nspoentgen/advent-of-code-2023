@@ -3,7 +3,10 @@ use std::fs::File;
 use std::hash::Hash;
 use std::io::{BufReader, BufRead};
 use std::path::Path;
+use itertools::Itertools;
 use num_format::{Locale, ToFormattedString};
+use num_format::Locale::en;
+use rayon::iter::Fold;
 use Direction::*;
 
 #[derive(Eq, PartialEq, Hash, Clone, Debug)]
@@ -27,18 +30,10 @@ fn main () {
     let heat_loss_reference = parse_data(&path);
 
     //Get minimum using dynamic programming
-    let initial_state = NodeState {
-        row_index: 0,
-        col_index: 0,
-        direction: East,
-        straights_left: 3
-    };
-    let mut minimum_heat_loss_cache = HashMap::<NodeState, Option<u32>>::new();
-    let stack_trace = HashSet::<NodeState>::new();
-    let minimum_heat_loss = get_minimum_heat_loss(&initial_state, &mut minimum_heat_loss_cache, &heat_loss_reference, stack_trace).unwrap();
+    let minimum_heat_loss = minimum_heat_loss_solver((0,0), East, &heat_loss_reference);
 
     //Print answer
-    println!("The minimum heat loss is {}", minimum_heat_loss.to_formatted_string(&Locale::en))
+    println!("The minimum heat loss is {}", minimum_heat_loss.to_formatted_string(&en))
 }
 
 fn parse_data(path: &Path) -> Vec<Vec<u32>> {
@@ -51,41 +46,103 @@ fn parse_data(path: &Path) -> Vec<Vec<u32>> {
         .collect();
 }
 
-fn get_minimum_heat_loss(current_state: &NodeState, minimum_heat_loss_cache: &mut HashMap<NodeState, Option<u32>>, heat_loss_reference: &Vec<Vec<u32>>, mut stack_trace: HashSet<NodeState>) -> Option<u32> {
-    println!("Node = {:?}), stack depth = {}", current_state, stack_trace.iter().count());
-    stack_trace.insert(current_state.clone());
+fn minimum_heat_loss_solver(initial_pos: (usize, usize), initial_direction: Direction, heat_loss_reference: &Vec<Vec<u32>>) -> u32 {
+    #[derive(Debug)]
+    enum Action {
+        Process(NodeState),
+        Fold(u32)
+    }
+
+    let initial_state = NodeState {
+        row_index: initial_pos.0,
+        col_index: initial_pos.1,
+        direction: initial_direction,
+        straights_left: 3
+    };
+    let mut minimum_heat_loss_cache = HashMap::<NodeState, Option<u32>>::new();
+    let mut work_stack = Vec::<Action>::new();
+    let mut state_stack = Vec::<Vec<u32>>::new();
+    let mut state_tracker = Vec::<u32>::new();
+    work_stack.push(Action::Fold(0));
+    work_stack.push(Action::Process(initial_state));
+
+    while let Some(next_work_item) = work_stack.pop() {
+        let work_stack_count = work_stack.iter().count();
+        //println!("Work stack = {:?}\nstate stack = {:?}\ncurrent state = {:?}\n", work_stack, state_stack, next_work_item);
+        /*
+        if work_stack_count > 100 {
+            panic!("Debug stop")
+        }
+
+         */
+
+        match next_work_item {
+            Action::Process(test_state) => {
+                let state_trace = work_stack
+                    .iter()
+                    .filter_map(|x| match x {
+                        Action::Process(state) => Some(state),
+                        Action::Fold(_) => None
+                    })
+                    .collect::<HashSet<&NodeState>>();
+
+                let (heat_loss_option, additional_work_items) = get_minimum_heat_loss(&test_state, state_trace, &mut minimum_heat_loss_cache, &heat_loss_reference);
+
+                if let Some(heat_loss) = heat_loss_option {
+                    state_tracker.push(heat_loss);
+                } else if additional_work_items.iter().count() > 0 {
+                    let fold_value = if (test_state.row_index, test_state.col_index) == (0, 0) { 0 } else { heat_loss_reference[test_state.row_index][test_state.col_index] };
+                    work_stack.push(Action::Fold(fold_value));
+                    state_stack.push(state_tracker.clone());
+                    state_tracker.clear();
+
+                    for work_item in additional_work_items.into_iter().rev() {
+                        work_stack.push(Action::Process(work_item));
+                    }
+                }
+            },
+            Action::Fold(acc) => {
+                let mut cumulative_heat_loss = acc;
+                if state_tracker.iter().count() > 0 {
+                    cumulative_heat_loss += state_tracker.iter().min().unwrap();
+                }
+
+                if let Some(next_state_tracker) = state_stack.pop() {
+                    state_tracker = next_state_tracker;
+                }
+
+                state_tracker.push(cumulative_heat_loss)
+            }
+        };
+    }
+
+    return state_tracker[0];
+}
+
+fn get_minimum_heat_loss(current_state: &NodeState, stack_trace: HashSet<&NodeState>, minimum_heat_loss_cache: &mut HashMap<NodeState, Option<u32>>, heat_loss_reference: &Vec<Vec<u32>>) -> (Option<u32>, Vec<NodeState>) {
     let mut min_heat_loss = None;
     let mut update_cache = true;
+    let mut additional_work_items = Vec::<NodeState>::new();
 
     if let Some(cached_result) = minimum_heat_loss_cache.get(current_state) {
         min_heat_loss = *cached_result;
         update_cache = false;
+
+        //println!("Cache hit!");
     } else if current_state.row_index == heat_loss_reference.len() - 1 && current_state.col_index == heat_loss_reference[0].len() - 1 {
         min_heat_loss = Some(*heat_loss_reference.last().unwrap().last().unwrap());
         println!("Reached final node");
     } else {
-        let mut sub_problem_min_heat_loss_option = None;
-
-        for next_state in get_next_valid_states(current_state, &stack_trace, heat_loss_reference.len() - 1, heat_loss_reference[0].len() - 1) {
-            if let Some(sub_problem_min_heat_loss) = get_minimum_heat_loss(&next_state, minimum_heat_loss_cache, heat_loss_reference, stack_trace.clone()) {
-                if sub_problem_min_heat_loss_option.is_none() || sub_problem_min_heat_loss < sub_problem_min_heat_loss_option.unwrap() {
-                    sub_problem_min_heat_loss_option = Some(sub_problem_min_heat_loss);
-                }
-            }
-        }
-
-        if let Some(sub_problem_min_heat_loss) = sub_problem_min_heat_loss_option {
-            min_heat_loss = Some(sub_problem_min_heat_loss + heat_loss_reference[current_state.row_index][current_state.col_index]);
-        }
+        additional_work_items = get_next_valid_states(current_state, &stack_trace, heat_loss_reference.len() - 1, heat_loss_reference[0].len() - 1);
     }
 
     if update_cache {
         minimum_heat_loss_cache.insert(current_state.clone(), min_heat_loss);
     }
-    return min_heat_loss;
+    return (min_heat_loss, additional_work_items);
 }
 
-fn get_next_valid_states(current_state: &NodeState, stack_trace: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Vec<NodeState> {
+fn get_next_valid_states(current_state: &NodeState, stack_trace: &HashSet<&NodeState>, row_max: usize, col_max: usize) -> Vec<NodeState> {
     let mut valid_states = Vec::<NodeState>::new();
     
     //Conditionally add left move
@@ -106,7 +163,7 @@ fn get_next_valid_states(current_state: &NodeState, stack_trace: &HashSet<NodeSt
     return valid_states;
 }
 
-fn generate_left_move(current_state: &NodeState, stack_trace: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
+fn generate_left_move(current_state: &NodeState, stack_trace: &HashSet<&NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
     let mut left_move_state = None;
 
     let left_move_direction: Direction = match current_state.direction {
@@ -125,7 +182,8 @@ fn generate_left_move(current_state: &NodeState, stack_trace: &HashSet<NodeState
             direction: left_move_direction,
             straights_left: MAX_CONSECUTIVE_STRAIGHTS
         };
-        if !stack_trace.contains(&possible_state) {
+
+        if stack_trace.iter().all(|&x| (possible_state.row_index, possible_state.col_index) != (x.row_index, x.col_index)) {
             left_move_state = Some(possible_state);
         }
     }
@@ -133,7 +191,7 @@ fn generate_left_move(current_state: &NodeState, stack_trace: &HashSet<NodeState
     return left_move_state;
 }
 
-fn generate_right_move(current_state: &NodeState, stack_trace: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
+fn generate_right_move(current_state: &NodeState, stack_trace: &HashSet<&NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
     let mut right_move_state = None;
 
     let right_move_direction: Direction = match current_state.direction {
@@ -152,7 +210,8 @@ fn generate_right_move(current_state: &NodeState, stack_trace: &HashSet<NodeStat
             direction: right_move_direction,
             straights_left: MAX_CONSECUTIVE_STRAIGHTS
         };
-        if !stack_trace.contains(&possible_state) {
+
+        if stack_trace.iter().all(|&x| (possible_state.row_index, possible_state.col_index) != (x.row_index, x.col_index)) {
             right_move_state = Some(possible_state);
         }
     }
@@ -160,7 +219,7 @@ fn generate_right_move(current_state: &NodeState, stack_trace: &HashSet<NodeStat
     return right_move_state;
 }
 
-fn generate_straight_move(current_state: &NodeState, stack_trace: &HashSet<NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
+fn generate_straight_move(current_state: &NodeState, stack_trace: &HashSet<&NodeState>, row_max: usize, col_max: usize) -> Option<NodeState> {
     let mut straight_move_state = None;
 
     if current_state.straights_left > 0 {
@@ -172,7 +231,8 @@ fn generate_straight_move(current_state: &NodeState, stack_trace: &HashSet<NodeS
                 direction: current_state.direction,
                 straights_left: current_state.straights_left - 1,
             };
-            if !stack_trace.contains(&possible_state) {
+
+            if stack_trace.iter().all(|&x| (possible_state.row_index, possible_state.col_index) != (x.row_index, x.col_index)) {
                 straight_move_state = Some(possible_state);
             }
         }
