@@ -43,7 +43,8 @@ impl PartialOrd for HeapState {
     }
 }
 
-const MAX_CONSECUTIVE_STRAIGHTS: u32 = 3;
+const MAX_CONSECUTIVE_STRAIGHTS: u32 = 10;
+const MIN_CONTINUOUS_STRAIGHTS: u32 = 4;
 
 fn main () {
     //Parse data
@@ -160,17 +161,18 @@ fn generate_left_move(current_state: &NodeState, row_max: usize, col_max: usize)
         West => South
     };
 
-    let left_move_pos = advance_pos(current_state.row_index as isize, current_state.col_index as isize, left_move_direction);
+    if (current_state.row_index, current_state.col_index) == (0,0) || current_state.straights_left <= MAX_CONSECUTIVE_STRAIGHTS - MIN_CONTINUOUS_STRAIGHTS {
+        let left_move_pos = advance_pos(current_state.row_index as isize, current_state.col_index as isize, left_move_direction);
+        if is_in_bounds(left_move_pos, row_max, col_max) {
+            let possible_state = NodeState {
+                row_index: left_move_pos.0 as usize,
+                col_index: left_move_pos.1 as usize,
+                direction: left_move_direction,
+                straights_left: MAX_CONSECUTIVE_STRAIGHTS - 1,
+            };
 
-    if is_in_bounds(left_move_pos, row_max, col_max) {
-        let possible_state = NodeState {
-            row_index: left_move_pos.0 as usize,
-            col_index: left_move_pos.1 as usize,
-            direction: left_move_direction,
-            straights_left: MAX_CONSECUTIVE_STRAIGHTS - 1
-        };
-
-        left_move_state = Some(possible_state);
+            left_move_state = Some(possible_state);
+        }
     }
 
     return left_move_state;
@@ -186,17 +188,18 @@ fn generate_right_move(current_state: &NodeState, row_max: usize, col_max: usize
         West => North
     };
 
-    let right_move_pos = advance_pos(current_state.row_index as isize, current_state.col_index as isize, right_move_direction);
+    if (current_state.row_index, current_state.col_index) == (0,0) || current_state.straights_left <= MAX_CONSECUTIVE_STRAIGHTS - MIN_CONTINUOUS_STRAIGHTS {
+        let right_move_pos = advance_pos(current_state.row_index as isize, current_state.col_index as isize, right_move_direction);
+        if is_in_bounds(right_move_pos, row_max, col_max) {
+            let possible_state = NodeState {
+                row_index: right_move_pos.0 as usize,
+                col_index: right_move_pos.1 as usize,
+                direction: right_move_direction,
+                straights_left: MAX_CONSECUTIVE_STRAIGHTS - 1,
+            };
 
-    if is_in_bounds(right_move_pos, row_max, col_max) {
-        let possible_state = NodeState {
-            row_index: right_move_pos.0 as usize,
-            col_index: right_move_pos.1 as usize,
-            direction: right_move_direction,
-            straights_left: MAX_CONSECUTIVE_STRAIGHTS - 1
-        };
-
-        right_move_state = Some(possible_state);
+            right_move_state = Some(possible_state);
+        }
     }
 
     return right_move_state;
@@ -242,7 +245,7 @@ fn generate_possible_end_states(row_max: usize, col_max: usize) -> Vec<NodeState
     let mut possible_end_states = Vec::<NodeState>::new();
     let possible_directions = vec![East, South];
 
-    for straights_left in 0..MAX_CONSECUTIVE_STRAIGHTS {
+    for straights_left in 0..=(MAX_CONSECUTIVE_STRAIGHTS - MIN_CONTINUOUS_STRAIGHTS) {
         for direction in &possible_directions {
             possible_end_states.push(NodeState {
                 row_index: row_max,
