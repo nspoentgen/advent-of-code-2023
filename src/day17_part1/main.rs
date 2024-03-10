@@ -1,6 +1,7 @@
+use std::cmp::Ordering;
 use std::fs::File;
 use std::hash::Hash;
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, BinaryHeap};
 use std::io::{BufReader, BufRead};
 use std::path::Path;
 use rayon::prelude::*;
@@ -17,6 +18,30 @@ struct NodeState {
 
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 enum Direction { North, East, South, West }
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+struct HeapState {
+    cost: usize,
+    node_index: usize,
+}
+
+// Explicitly implement the trait so the queue becomes a min-heap
+// instead of a max-heap.
+impl Ord for HeapState {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Notice that we flip the ordering on costs.
+        // In case of a tie we compare node indices. This step is necessary
+        // to make implementations of `PartialEq` and `Ord` consistent.
+        other.cost.cmp(&self.cost)
+            .then_with(|| self.node_index.cmp(&other.node_index))
+    }
+}
+
+impl PartialOrd for HeapState {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 const MAX_CONSECUTIVE_STRAIGHTS: u32 = 3;
 
@@ -232,41 +257,43 @@ fn generate_possible_end_states(row_max: usize, col_max: usize) -> Vec<NodeState
 }
 
 fn find_minimum_heat_loss(graph: &Vec<NodeState>, adjacent_node_indices: &Vec<Vec<usize>>, heat_loss_reference: &Vec<Vec<usize>>, goal_node_index: usize) -> Option<usize> {
-    let mut heat_loss = vec![usize::MAX; graph.len()];
-    let mut previous: Vec<Option<usize>> = vec![None; graph.len()];
-    let mut search_set = HashSet::<usize>::new();
+    //heat_loss[node_index] = current shortest distance from `start` to `node`
+    let mut heat_loss: Vec<_> = (0..adjacent_node_indices.len()).map(|_| usize::MAX).collect();
+    let mut heap = BinaryHeap::new();
 
-    for node_index in 0..graph.len() {
-        heat_loss[node_index] = usize::MAX;
-        previous[node_index] = None;
-        search_set.insert(node_index);
-    }
-
+    //Initial state. Graph is configured such that the initial state is index 0.
     heat_loss[0] = 0;
+    heap.push(HeapState { cost: 0, node_index: 0 });
 
-    while !&search_set.is_empty() {
-        let mut min_heat_loss = usize::MAX;
-        let mut min_heat_loss_node_index = 0usize;
-
-        for node_index in &search_set {
-            if heat_loss[*node_index] < min_heat_loss {
-                min_heat_loss_node_index = *node_index;
-                min_heat_loss = heat_loss[*node_index];
-            }
+    // Examine the frontier with lower cost nodes first (min-heap)
+    while let Some(HeapState { cost, node_index }) = heap.pop() {
+        //Return as soon as we have found our goal node
+        if node_index == goal_node_index {
+            return Some(cost);
         }
 
-        if min_heat_loss_node_index == goal_node_index {
-            return Some(min_heat_loss);
+        //Continue to the next iteration if we have already exceeded the optimal
+        //heat loss. This saves a lot of computation.
+        if cost > heat_loss[node_index] {
+            continue;
         }
-        search_set.remove(&min_heat_loss_node_index);
 
-        for adjacent_node_index in &adjacent_node_indices[min_heat_loss_node_index] {
-            let alternate = heat_loss[min_heat_loss_node_index] + heat_loss_reference[graph[*adjacent_node_index].row_index][graph[*adjacent_node_index].col_index];
-            if alternate < heat_loss[*adjacent_node_index] {
-                heat_loss[*adjacent_node_index] = alternate;
+        //For each node we can reach, see if we can find a way with
+        //a lower cost going through this node
+        for adjacent_node_index in &adjacent_node_indices[node_index] {
+            let movement_cost = heat_loss_reference[graph[*adjacent_node_index].row_index][graph[*adjacent_node_index].col_index];
+            let next = HeapState { cost: cost + movement_cost, node_index: *adjacent_node_index };
+
+            // If so, add it to the frontier and continue
+            if next.cost < heat_loss[*adjacent_node_index] {
+                heap.push(next);
+                
+                // Relaxation, we have now found a better way
+                heat_loss[*adjacent_node_index] = next.cost;
             }
         }
     }
 
-    return None;
+    // Goal not reachable
+    return None
 }
