@@ -4,7 +4,7 @@ use std::hash::Hash;
 use std::collections::{HashMap, BinaryHeap};
 use std::io::{BufReader, BufRead};
 use std::path::Path;
-use rayon::prelude::*;
+use itertools::Itertools;
 use num_format::{Locale, ToFormattedString};
 use Direction::*;
 
@@ -55,14 +55,64 @@ fn main () {
     let (graph, adjacent_node_indices, node_index_map) = generate_graph(&heat_loss_reference);
 
     //Find minimum
-    let minimum_heat_loss = generate_possible_end_states(heat_loss_reference.len() - 1, heat_loss_reference[0].len() - 1)
-        .par_iter()
+    let min_data = generate_possible_end_states(heat_loss_reference.len() - 1, heat_loss_reference[0].len() - 1)
+        .iter()
         .map(|goal_state| find_minimum_heat_loss(&graph, &adjacent_node_indices, &heat_loss_reference, node_index_map[&goal_state]))
         .filter_map(|x| x)
-        .min();
+        .collect_vec();
+    let min_heat = min_data.iter().map(|x| x.0).min().unwrap();
 
     //Print answer
-    println!("The minimum heat loss is {}", minimum_heat_loss.unwrap().to_formatted_string(&Locale::en))
+    println!("The minimum heat loss is {}", min_heat.to_formatted_string(&Locale::en));
+/*
+    //Generate path
+    let prev = &min_data[0].1;
+    let mut min_path = Vec::<usize>::new();
+    let mut u = Some(node_index_map[&NodeState {
+        row_index: heat_loss_reference.len() - 1,
+        col_index: heat_loss_reference[0].len() - 1,
+        direction: East,
+        straights_left: 1
+    }]);
+    while let Some(index) = u {
+        min_path.push(index);
+        u = prev[index];
+    }
+    min_path.reverse();
+
+    //Print path
+    let mut path_map = Vec::<Vec<char>>::new();
+    for i in 0..heat_loss_reference.len() {
+        path_map.push(Vec::<char>::new());
+        for j in 0..heat_loss_reference[i].len() {
+            path_map[i].push(char::from_digit(heat_loss_reference[i][j] as u32, 10).unwrap())
+        }
+    }
+
+    for node in min_path.iter().map(|x| graph[*x].clone()) {
+        match node.direction {
+            North => path_map[node.row_index][node.col_index] = '^',
+            East => path_map[node.row_index][node.col_index] = '>',
+            South => path_map[node.row_index][node.col_index] = 'v',
+            West => path_map[node.row_index][node.col_index] = '<',
+        }
+    }
+
+    for i in 0..path_map.len() {
+        for j in 0..path_map[i].len() {
+            print!("{}", path_map[i][j]);
+        }
+        print!("\n");
+    }
+
+
+
+    println!("{}", min_path[1..]
+        .iter()
+        .map(|i| heat_loss_reference[graph[*i].row_index][graph[*i].col_index])
+        .sum::<usize>());
+
+ */
 }
 
 fn parse_data(path: &Path) -> Vec<Vec<usize>> {
@@ -121,7 +171,7 @@ fn generate_graph(heat_loss_reference: &Vec<Vec<usize>>) -> (Vec<NodeState>, Vec
     let mut adjacent_node_indices: Vec<Vec<usize>> = vec![Vec::<usize>::new(); graph.len()];
 
     for index in 0..graph.len() {
-        adjacent_node_indices[index] = get_valid_nodes(&graph[index], row_max, col_max)
+        adjacent_node_indices[index] = get_adjacent_nodes(&graph[index], row_max, col_max)
             .iter()
             .map(|x| node_index_map[x])
             .collect::<Vec<usize>>();
@@ -130,7 +180,7 @@ fn generate_graph(heat_loss_reference: &Vec<Vec<usize>>) -> (Vec<NodeState>, Vec
     return (graph, adjacent_node_indices, node_index_map);
 }
 
-fn get_valid_nodes(current_state: &NodeState, row_max: usize, col_max: usize) -> Vec<NodeState> {
+fn get_adjacent_nodes(current_state: &NodeState, row_max: usize, col_max: usize) -> Vec<NodeState> {
     let mut valid_states = Vec::<NodeState>::new();
     
     //Conditionally add left move
@@ -245,7 +295,7 @@ fn generate_possible_end_states(row_max: usize, col_max: usize) -> Vec<NodeState
     let mut possible_end_states = Vec::<NodeState>::new();
     let possible_directions = vec![East, South];
 
-    for straights_left in 0..=(MAX_CONSECUTIVE_STRAIGHTS - MIN_CONTINUOUS_STRAIGHTS) {
+    for straights_left in 0..=MAX_CONSECUTIVE_STRAIGHTS - MIN_CONTINUOUS_STRAIGHTS {
         for direction in &possible_directions {
             possible_end_states.push(NodeState {
                 row_index: row_max,
@@ -259,9 +309,10 @@ fn generate_possible_end_states(row_max: usize, col_max: usize) -> Vec<NodeState
     return possible_end_states;
 }
 
-fn find_minimum_heat_loss(graph: &Vec<NodeState>, adjacent_node_indices: &Vec<Vec<usize>>, heat_loss_reference: &Vec<Vec<usize>>, goal_node_index: usize) -> Option<usize> {
+fn find_minimum_heat_loss(graph: &Vec<NodeState>, adjacent_node_indices: &Vec<Vec<usize>>, heat_loss_reference: &Vec<Vec<usize>>, goal_node_index: usize) -> Option<(usize, Vec<Option<usize>>)> {
     //heat_loss[node_index] = current shortest distance from `start` to `node`
     let mut heat_loss: Vec<_> = (0..adjacent_node_indices.len()).map(|_| usize::MAX).collect();
+    let mut path: Vec<Option<usize>> = (0..adjacent_node_indices.len()).map(|_| None).collect();
     let mut heap = BinaryHeap::new();
 
     //Initial state. Graph is configured such that the initial state is index 0.
@@ -272,7 +323,7 @@ fn find_minimum_heat_loss(graph: &Vec<NodeState>, adjacent_node_indices: &Vec<Ve
     while let Some(HeapState { cost, node_index }) = heap.pop() {
         //Return as soon as we have found our goal node
         if node_index == goal_node_index {
-            return Some(cost);
+            return Some((cost, path));
         }
 
         //Continue to the next iteration if we have already exceeded the optimal
@@ -293,6 +344,7 @@ fn find_minimum_heat_loss(graph: &Vec<NodeState>, adjacent_node_indices: &Vec<Ve
 
                 // Relaxation, we have now found a better way
                 heat_loss[*adjacent_node_index] = next.cost;
+                path[*adjacent_node_index] = Some(node_index);
             }
         }
     }

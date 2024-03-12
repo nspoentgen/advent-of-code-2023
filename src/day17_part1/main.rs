@@ -120,7 +120,7 @@ fn generate_graph(heat_loss_reference: &Vec<Vec<usize>>) -> (Vec<NodeState>, Vec
     let mut adjacent_node_indices: Vec<Vec<usize>> = vec![Vec::<usize>::new(); graph.len()];
 
     for index in 0..graph.len() {
-        adjacent_node_indices[index] = get_valid_nodes(&graph[index], row_max, col_max)
+        adjacent_node_indices[index] = get_adjacent_nodes(&graph[index], row_max, col_max)
             .iter()
             .map(|x| node_index_map[x])
             .collect::<Vec<usize>>();
@@ -129,7 +129,7 @@ fn generate_graph(heat_loss_reference: &Vec<Vec<usize>>) -> (Vec<NodeState>, Vec
     return (graph, adjacent_node_indices, node_index_map);
 }
 
-fn get_valid_nodes(current_state: &NodeState, row_max: usize, col_max: usize) -> Vec<NodeState> {
+fn get_adjacent_nodes(current_state: &NodeState, row_max: usize, col_max: usize) -> Vec<NodeState> {
     let mut valid_states = Vec::<NodeState>::new();
     
     //Conditionally add left move
