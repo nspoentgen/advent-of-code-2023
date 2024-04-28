@@ -1,4 +1,3 @@
-use num_format::Locale::pa;
 use RuleResult::*;
 use RelationalType::*;
 use PartType::*;
