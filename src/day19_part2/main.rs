@@ -15,18 +15,9 @@ use crate::data_types::RuleResult::{Accept, GoToWorkflow, NextRule, Reject};
 mod data_types;
 
 fn main () {
-    let path = Path::new("src/day19_part1/test_input2.txt");
+    let path = Path::new("src/day19_part1/input.txt");
     let workflows = parse_data(&path);
     let accepted_parts = get_all_accepted_parts(&workflows);
-
-    let mut foo = 1;
-    foo += 1;
-    foo += 1;
-    foo += 1;
-    foo += 1;
-    foo += 1;
-    foo += 1;
-    foo += 1;
 
 
     let total_sum = accepted_parts.iter().map(|x| x.get_parts_combinations()).sum::<u64>();
@@ -141,8 +132,6 @@ fn get_all_accepted_parts(all_workflows: &HashMap<String, Workflow>) -> Vec<Aggr
 fn evaluate_rule(workflow: Workflow, rule_index: usize, input_parts: AggregatePart,
                  all_workflows: &HashMap<String, Workflow>) -> Vec<(RuleResult, Workflow, usize, AggregatePart)>
 {
-    println!("Workflow: {}", workflow.name.clone());
-
     let rule = workflow.rules[rule_index].clone();
     let evaluation_results = rule.evaluate(&input_parts);
     let mut statuses = Vec::<(RuleResult, Workflow, usize, AggregatePart)>::new();

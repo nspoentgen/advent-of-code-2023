@@ -1,4 +1,3 @@
-use num_format::Locale::{lo, se};
 use RuleResult::*;
 use RelationalType::*;
 use PartType::*;
@@ -44,7 +43,7 @@ impl Rule {
                     results.push((NextRule, failing_parts));
 
                     let mut passing_parts = input_parts.clone();
-                    passing_parts.update_bounds(self.variant.unwrap(), self.rule_threshold.unwrap(), upper_bound);
+                    passing_parts.update_bounds(self.variant.unwrap(), self.rule_threshold.unwrap() + 1, upper_bound);
                     results.push((self.true_result.clone(), passing_parts));
                 } else {
                     results.push((self.true_result.clone(), input_parts.clone()));
@@ -55,7 +54,7 @@ impl Rule {
                     results.push((self.true_result.clone(), input_parts.clone()));
                 } else if lower_bound <= self.rule_threshold.unwrap() && upper_bound > self.rule_threshold.unwrap() {
                     let mut passing_parts = input_parts.clone();
-                    passing_parts.update_bounds(self.variant.unwrap(), lower_bound, self.rule_threshold.unwrap());
+                    passing_parts.update_bounds(self.variant.unwrap(), lower_bound, self.rule_threshold.unwrap() - 1);
                     results.push((self.true_result.clone(), passing_parts));
 
                     let mut failing_parts = input_parts.clone();
@@ -131,41 +130,27 @@ impl AggregatePart {
         }
     }
 
-    pub fn empty_part() -> Self {
-        return AggregatePart {
-            x_lower_bound: 0u64,
-            x_upper_bound: 0u64,
-            m_lower_bound: 0u64,
-            m_upper_bound: 0u64,
-            a_lower_bound: 0u64,
-            a_upper_bound: 0u64,
-            s_lower_bound: 0u64,
-            s_upper_bound: 0u64
-        };
-    }
-
     pub fn all_parts() -> Self {
         //Bound are open so add/subtract 1 to min/max part numbers
         return AggregatePart {
-            x_lower_bound: Self::MIN_PART_NUMBER - 1,
-            x_upper_bound: Self::MAX_PART_NUMBER + 1,
-            m_lower_bound: Self::MIN_PART_NUMBER - 1,
-            m_upper_bound: Self::MAX_PART_NUMBER + 1,
-            a_lower_bound: Self::MIN_PART_NUMBER - 1,
-            a_upper_bound: Self::MAX_PART_NUMBER + 1,
-            s_lower_bound: Self::MIN_PART_NUMBER - 1,
-            s_upper_bound: Self::MAX_PART_NUMBER + 1,
+            x_lower_bound: Self::MIN_PART_NUMBER,
+            x_upper_bound: Self::MAX_PART_NUMBER,
+            m_lower_bound: Self::MIN_PART_NUMBER,
+            m_upper_bound: Self::MAX_PART_NUMBER,
+            a_lower_bound: Self::MIN_PART_NUMBER,
+            a_upper_bound: Self::MAX_PART_NUMBER,
+            s_lower_bound: Self::MIN_PART_NUMBER,
+            s_upper_bound: Self::MAX_PART_NUMBER,
         };
     }
 
     pub fn get_parts_combinations(&self) -> u64 {
-        let bound_range = |lb: u64, ub: u64| (ub - 1) - (lb + 1) + 1 ;
         let bound_pairs = [(self.x_lower_bound, self.x_upper_bound), (self.m_lower_bound, self.m_upper_bound),
             (self.a_lower_bound, self.a_upper_bound), (self.s_lower_bound, self.s_upper_bound)];
 
         return bound_pairs
             .iter()
-            .map(|x| bound_range(x.0, x.1))
+            .map(|(lb, ub)| ub - lb + 1)
             .filter(|x| *x > 0)
             .product::<u64>();
     }
