@@ -1,14 +1,15 @@
+use num_format::Locale::{lo, se};
 use RuleResult::*;
 use RelationalType::*;
 use PartType::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Workflow {
     pub name: String,
     pub rules: Vec<Rule>
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Rule {
     pub variant: Option<PartType>,
     pub operator: Option<RelationalType>,
@@ -17,78 +18,60 @@ pub struct Rule {
 }
 
 impl Rule {
-    pub fn invert_rule(rule: &Rule) -> Rule {
-        let inverted_operator = match rule.operator {
-            Some(GreaterThan) => Some(LessThan),
-            Some(LessThan) => Some(GreaterThan),
-            None => None
-        };
-
-        return Rule {
-            variant: rule.variant.clone(),
-            operator: inverted_operator,
-            rule_threshold: rule.rule_threshold.clone(),
-            true_result: rule.true_result.clone()
-        };
-    }
-
     pub fn evaluate(&self, input_parts: &AggregatePart) -> Vec<(RuleResult, AggregatePart)> {
-        //Short circuit for automatic result
+        //Final rule corner case. Automatically use true result.
         if self.variant.is_none() {
             return vec![(self.true_result.clone(), (*input_parts).clone())];
         }
 
-        let mut lower_bound_parts = (*input_parts).clone();
-        let mut upper_bound_parts = (*input_parts).clone();
-
-        let (lower_bound_arguments, upper_bound_arguments): ((&mut u64, &mut u64), (&mut u64, &mut u64)) = match self.variant {
-            Some(ExtremelyCool) => ((&mut lower_bound_parts.x_lower_bound, &mut lower_bound_parts.x_upper_bound), (&mut upper_bound_parts.x_lower_bound, &mut upper_bound_parts.x_upper_bound)),
-            Some(Musical) => ((&mut lower_bound_parts.m_lower_bound, &mut lower_bound_parts.m_upper_bound), (&mut upper_bound_parts.m_lower_bound, &mut upper_bound_parts.m_upper_bound)),
-            Some(Aerodynamic) => ((&mut lower_bound_parts.a_lower_bound, &mut lower_bound_parts.a_upper_bound), (&mut upper_bound_parts.a_lower_bound, &mut upper_bound_parts.a_upper_bound)),
-            Some(Shiny) => ((&mut lower_bound_parts.s_lower_bound, &mut lower_bound_parts.s_upper_bound), (&mut upper_bound_parts.s_lower_bound, &mut upper_bound_parts.s_upper_bound)),
+        //Nominal case
+        let (lower_bound, upper_bound) = match self.variant {
+            Some(ExtremelyCool) => (input_parts.x_lower_bound, input_parts.x_upper_bound),
+            Some(Musical) => (input_parts.m_lower_bound, input_parts.m_upper_bound),
+            Some(Aerodynamic) => (input_parts.a_lower_bound, input_parts.a_upper_bound),
+            Some(Shiny) => (input_parts.s_lower_bound, input_parts.s_upper_bound),
             None => panic!("Cannot evaluate rule since variant is None")
         };
 
-        let mut lower_bound_parts_optional = None;
-        let mut upper_bound_parts_optional = None;
-
+        let mut results = Vec::<(RuleResult, AggregatePart)>::new();
         match self.operator.unwrap() {
-            LessThan => {
-                if *lower_bound_arguments.0 <= self.rule_threshold.unwrap() && *lower_bound_arguments.1 <= self.rule_threshold.unwrap() {
-                    lower_bound_parts_optional = Some(lower_bound_parts);
-                } else if *lower_bound_arguments.0 <= self.rule_threshold.unwrap() && *lower_bound_arguments.1 >= self.rule_threshold.unwrap() {
-                    *lower_bound_arguments.1 = self.rule_threshold.unwrap();
-                    lower_bound_parts_optional = Some(lower_bound_parts);
+            GreaterThan => {
+                if lower_bound <= self.rule_threshold.unwrap() && upper_bound <= self.rule_threshold.unwrap() {
+                    results.push((NextRule, input_parts.clone()));
+                } else if lower_bound <= self.rule_threshold.unwrap() && upper_bound > self.rule_threshold.unwrap() {
+                    let mut failing_parts = input_parts.clone();
+                    failing_parts.update_bounds(self.variant.unwrap(), lower_bound, self.rule_threshold.unwrap());
+                    results.push((NextRule, failing_parts));
+
+                    let mut passing_parts = input_parts.clone();
+                    passing_parts.update_bounds(self.variant.unwrap(), self.rule_threshold.unwrap(), upper_bound);
+                    results.push((self.true_result.clone(), passing_parts));
+                } else {
+                    results.push((self.true_result.clone(), input_parts.clone()));
                 }
             },
-            GreaterThan => {
-                if *upper_bound_arguments.0 <= self.rule_threshold.unwrap() && *upper_bound_arguments.1 >= self.rule_threshold.unwrap() {
-                    *upper_bound_arguments.0 = self.rule_threshold.unwrap();
-                    upper_bound_parts_optional = Some(upper_bound_parts);
+            LessThan => {
+                if lower_bound <= self.rule_threshold.unwrap() && upper_bound <= self.rule_threshold.unwrap() {
+                    results.push((self.true_result.clone(), input_parts.clone()));
+                } else if lower_bound <= self.rule_threshold.unwrap() && upper_bound > self.rule_threshold.unwrap() {
+                    let mut passing_parts = input_parts.clone();
+                    passing_parts.update_bounds(self.variant.unwrap(), lower_bound, self.rule_threshold.unwrap());
+                    results.push((self.true_result.clone(), passing_parts));
+
+                    let mut failing_parts = input_parts.clone();
+                    failing_parts.update_bounds(self.variant.unwrap(), self.rule_threshold.unwrap(), upper_bound);
+                    results.push((NextRule, failing_parts));
                 } else {
-                    upper_bound_parts_optional = Some(upper_bound_parts);
+                    results.push((NextRule, input_parts.clone()));
                 }
             }
-        }
-
-        let mut results = Vec::<(RuleResult, AggregatePart)>::new();
-        if let Some(lower_bound_parts_value) = lower_bound_parts_optional {
-            results.push((self.true_result.clone(), lower_bound_parts_value));
-        } else {
-            results.push((Reject, AggregatePart::empty_part()))
-        }
-
-        if let Some(upper_bound_parts_value) = upper_bound_parts_optional {
-            results.push((self.true_result.clone(), upper_bound_parts_value));
-        } else {
-            results.push((Reject, AggregatePart::empty_part()))
         }
 
         return results;
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum PartType {
     ExtremelyCool,
     Musical,
@@ -96,13 +79,13 @@ pub enum PartType {
     Shiny
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum RelationalType {
     LessThan,
     GreaterThan
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum RuleResult {
     Accept,
     Reject,
@@ -110,7 +93,7 @@ pub enum RuleResult {
     GoToWorkflow(String)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AggregatePart {
 
     pub x_lower_bound: u64,
@@ -126,6 +109,27 @@ pub struct AggregatePart {
 impl AggregatePart {
     pub const MIN_PART_NUMBER: u64 = 1;
     pub const MAX_PART_NUMBER: u64 = 4000;
+
+    pub fn update_bounds(&mut self, part_type: PartType, lower_bound: u64, upper_bound: u64) {
+        match part_type {
+            ExtremelyCool => {
+                self.x_lower_bound = lower_bound;
+                self.x_upper_bound = upper_bound;
+            },
+            Musical => {
+                self.m_lower_bound = lower_bound;
+                self.m_upper_bound = upper_bound;
+            },
+            Aerodynamic => {
+                self.a_lower_bound = lower_bound;
+                self.a_upper_bound = upper_bound;
+            },
+            Shiny => {
+                self.s_lower_bound = lower_bound;
+                self.s_upper_bound = upper_bound;
+            },
+        }
+    }
 
     pub fn empty_part() -> Self {
         return AggregatePart {
@@ -155,7 +159,7 @@ impl AggregatePart {
     }
 
     pub fn get_parts_combinations(&self) -> u64 {
-        let bound_range = |lb: u64, ub: u64| if ub - lb <= 2 { 0 } else { (ub - 1) - (lb + 1) + 1 };
+        let bound_range = |lb: u64, ub: u64| (ub - 1) - (lb + 1) + 1 ;
         let bound_pairs = [(self.x_lower_bound, self.x_upper_bound), (self.m_lower_bound, self.m_upper_bound),
             (self.a_lower_bound, self.a_upper_bound), (self.s_lower_bound, self.s_upper_bound)];
 

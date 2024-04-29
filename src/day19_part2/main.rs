@@ -15,7 +15,7 @@ use crate::data_types::RuleResult::{Accept, GoToWorkflow, NextRule, Reject};
 mod data_types;
 
 fn main () {
-    let path = Path::new("src/day19_part1/test_input.txt");
+    let path = Path::new("src/day19_part1/test_input2.txt");
     let workflows = parse_data(&path);
     let accepted_parts = get_all_accepted_parts(&workflows);
 
@@ -123,8 +123,7 @@ fn get_all_accepted_parts(all_workflows: &HashMap<String, Workflow>) -> Vec<Aggr
     let mut all_passing_parts = Vec::<AggregatePart>::new();
 
     let mut evaluation_queue = VecDeque::<(RuleResult, Workflow, usize, AggregatePart)>::new();
-    evaluation_queue.extend(evaluate_rule(initial_workflow.clone(), initial_rule_index, false, initial_parts.clone(), all_workflows));
-    evaluation_queue.extend(evaluate_rule(initial_workflow, initial_rule_index, true, initial_parts, all_workflows));
+    evaluation_queue.extend(evaluate_rule(initial_workflow.clone(), initial_rule_index, initial_parts.clone(), all_workflows));
 
     while evaluation_queue.len() > 0 {
         let status = evaluation_queue.pop_front().unwrap();
@@ -132,20 +131,19 @@ fn get_all_accepted_parts(all_workflows: &HashMap<String, Workflow>) -> Vec<Aggr
         if discriminant(&status.0) == discriminant(&Accept) {
             all_passing_parts.push(status.3);
         } else if discriminant(&status.0) == discriminant(&GoToWorkflow("".to_string())) || discriminant(&status.0) == discriminant(&NextRule) {
-            evaluation_queue.extend(evaluate_rule(status.1.clone(), status.2, false, status.3.clone(), all_workflows));
-            evaluation_queue.extend(evaluate_rule(status.1, status.2, true, status.3, all_workflows));
+            evaluation_queue.extend(evaluate_rule(status.1.clone(), status.2, status.3.clone(), all_workflows));
         }
-
-        println!("Queue count: {}", evaluation_queue.len())
     }
 
     return all_passing_parts;
 }
 
-fn evaluate_rule(workflow: Workflow, rule_index: usize, invert_rule: bool, input_parts: AggregatePart,
+fn evaluate_rule(workflow: Workflow, rule_index: usize, input_parts: AggregatePart,
                  all_workflows: &HashMap<String, Workflow>) -> Vec<(RuleResult, Workflow, usize, AggregatePart)>
 {
-    let rule = if invert_rule { Rule::invert_rule(&workflow.rules[rule_index]) } else { workflow.rules[rule_index].clone() };
+    println!("Workflow: {}", workflow.name.clone());
+
+    let rule = workflow.rules[rule_index].clone();
     let evaluation_results = rule.evaluate(&input_parts);
     let mut statuses = Vec::<(RuleResult, Workflow, usize, AggregatePart)>::new();
 
