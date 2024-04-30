@@ -3,24 +3,23 @@ use std::collections::{HashMap, VecDeque};
 use std::collections::hash_map::Entry;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use itertools::Itertools;
 use num_format::{Locale, ToFormattedString};
 
 use crate::modules::*;
+use crate::modules::PulseType::{High, Low};
 
 mod modules;
 
 fn main() {
     let path = Path::new("src/day20_part1/input.txt");
-    let mut downstream_modules = parse_data(&path);
+    let target_module_names = ["kr", "zs", "kf", "qk"].map(|x| x.to_string());
 
-    let mut low_pulse_count = 0u64;
-    let mut high_pulse_count = 0u64;
-
-    for _ in 0..1000 {
-        (low_pulse_count, high_pulse_count, downstream_modules) = process_one_cycle(low_pulse_count, high_pulse_count, downstream_modules);
+    for module_name in &target_module_names {
+        let mut downstream_modules = parse_data(&path);
+        let num_iterations = get_iteration_to_single_emitted_high_pulse(module_name, downstream_modules);
+        println!("Name = {}, Num iterations = {}", module_name, num_iterations.to_formatted_string(&Locale::en));
     }
-
-    println!("Low * high pulse count = {}", (low_pulse_count * high_pulse_count).to_formatted_string(&Locale::en));
 }
 
 fn parse_data(path: &Path) -> HashMap<String, Box<dyn PulseReceiver>> {
@@ -77,16 +76,13 @@ fn parse_data(path: &Path) -> HashMap<String, Box<dyn PulseReceiver>> {
     return modules;
 }
 
-fn process_one_cycle(initial_low_pulse_count: u64, initial_high_pulse_count: u64, mut downstream_modules: HashMap<String, Box<dyn PulseReceiver>>) -> (u64, u64, HashMap<String, Box<dyn PulseReceiver>>) {
-    let mut low_pulse_count = initial_low_pulse_count;
-    let mut high_pulse_count = initial_high_pulse_count;
+fn process_one_cycle(target_module_name: &String, mut downstream_modules: HashMap<String, Box<dyn PulseReceiver>>) -> (bool, HashMap<String, Box<dyn PulseReceiver>>) {
+    let mut num_target_module_high_pulse = 0u64;
     let mut pulse_queue = VecDeque::<PulseOutput>::new();
 
     //We always start with a single assumed button module and then go from there
     let button_module = Button {};
-    let (low_pulses_generated, high_pulses_generated, output_pulses) = button_module.push();
-    low_pulse_count += low_pulses_generated;
-    high_pulse_count += high_pulses_generated;
+    let (_, _, output_pulses) = button_module.push();
     pulse_queue.extend(output_pulses);
 
     //Keep processing pulses as long as they are being generated. Process in FIFO order per
@@ -94,18 +90,35 @@ fn process_one_cycle(initial_low_pulse_count: u64, initial_high_pulse_count: u64
     //that there is no downstream module registered with the given name.
     while pulse_queue.len() > 0 {
         let pulse = pulse_queue.pop_front().unwrap();
-        let (low_pulses_generated, high_pulses_generated, output_pulses) = match downstream_modules.entry(pulse.1) {
+        if &pulse.0 == target_module_name && pulse.2 == High {
+            num_target_module_high_pulse += 1;
+        }
+
+        let (_, _, output_pulses) = match downstream_modules.entry(pulse.1) {
             Entry::Occupied(o) => {
                 let destination = o.into_mut();
                 destination.process_input_pulse(&pulse.0, pulse.2)
             },
-            Entry::Vacant(_) => (0u64, 0u64, vec![])
+            Entry::Vacant(_) => {
+                (0u64, 0u64, vec![])
+            }
         };
 
-        low_pulse_count += low_pulses_generated;
-        high_pulse_count += high_pulses_generated;
         pulse_queue.extend(output_pulses);
     }
 
-    return (low_pulse_count, high_pulse_count, downstream_modules);
+    let single_high_emitted_from_target = num_target_module_high_pulse == 1;
+    return (single_high_emitted_from_target, downstream_modules);
+}
+
+fn get_iteration_to_single_emitted_high_pulse(target_module_name: &String, mut downstream_modules: HashMap<String, Box<dyn PulseReceiver>>) -> u64 {
+    let mut num_iterations = 0u64;
+    let mut single_high_sent = false;
+
+    while !single_high_sent {
+        (single_high_sent, downstream_modules) = process_one_cycle(target_module_name, downstream_modules);
+        num_iterations += 1;
+    }
+
+    return num_iterations;
 }
