@@ -1,8 +1,8 @@
 use std::path::Path;
 use std::collections::{HashMap, VecDeque};
+use std::collections::hash_map::Entry;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use itertools::Itertools;
 use num_format::{Locale, ToFormattedString};
 
 use crate::modules::*;
@@ -10,9 +10,8 @@ use crate::modules::*;
 mod modules;
 
 fn main() {
-    let path = Path::new("src/day20_part1/test_input2.txt");
+    let path = Path::new("src/day20_part1/input.txt");
     let mut downstream_modules = parse_data(&path);
-    println!("Modules:\n{:?}", downstream_modules.values().map(|x| x.clone()).collect_vec());
 
     let mut low_pulse_count = 0u64;
     let mut high_pulse_count = 0u64;
@@ -21,7 +20,7 @@ fn main() {
         (low_pulse_count, high_pulse_count, downstream_modules) = process_one_cycle(low_pulse_count, high_pulse_count, downstream_modules);
     }
 
-    println!("Low count = {:}, high count = {}", low_pulse_count.to_formatted_string(&Locale::en), high_pulse_count.to_formatted_string(&Locale::en));
+    println!("Low * high pulse count = {}", (low_pulse_count * high_pulse_count).to_formatted_string(&Locale::en));
 }
 
 fn parse_data(path: &Path) -> HashMap<String, Box<dyn PulseReceiver>> {
@@ -91,10 +90,20 @@ fn process_one_cycle(initial_low_pulse_count: u64, initial_high_pulse_count: u64
     pulse_queue.extend(output_pulses);
 
     //Keep processing pulses as long as they are being generated. Process in FIFO order per
-    //problem statement
+    //problem statement. There are module sinks that can exist. We can detect these by noticing
+    //that there is no downstream module registered with the given name.
     while pulse_queue.len() > 0 {
         let pulse = pulse_queue.pop_front().unwrap();
-        let (low_pulses_generated, high_pulses_generated, output_pulses) = downstream_modules.get_mut(&pulse.1).unwrap().process_input_pulse(&pulse.0, pulse.2);
+        let (low_pulses_generated, high_pulses_generated, output_pulses) = match downstream_modules.entry(pulse.1) {
+            Entry::Occupied(o) => {
+                let destination = o.into_mut();
+                destination.process_input_pulse(&pulse.0, pulse.2)
+            },
+            Entry::Vacant(_) => (0u64, 0u64, vec![])
+        };
+
+
+
         low_pulse_count += low_pulses_generated;
         high_pulse_count += high_pulses_generated;
         pulse_queue.extend(output_pulses);

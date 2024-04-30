@@ -89,10 +89,6 @@ impl FlipFlop {
             state: DEFAULT_STATE,
             outputs: outputs.clone() };
     }
-    
-    pub fn state(&self) -> SwitchState {
-        return self.state;
-    }
 }
 
 impl PulseReceiver for FlipFlop {
@@ -111,8 +107,8 @@ impl PulseReceiver for FlipFlop {
             pulse_queue.extend(self.outputs.iter().map(|x| (self.name.clone(), x.clone(), emitted_pulse)));
 
             match emitted_pulse {
-                Low => low_pulses_sent += 1,
-                High => high_pulses_sent += 1
+                Low => low_pulses_sent += self.outputs.len() as u64,
+                High => high_pulses_sent += self.outputs.len() as u64
             }
         }
 
