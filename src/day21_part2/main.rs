@@ -8,7 +8,6 @@ use num_format::{Locale, ToFormattedString};
 const START: char = 'S';
 const ROCK: char = '#';
 const GARDEN_PLOT: char = '.';
-const MAX_NUM_STEPS: u64 = 500;
 
 //Convention: x-axis positive right, y-axis positive down
 type UnsignedCoordinate = (usize, usize);
@@ -23,7 +22,7 @@ struct WalkState {
 
 fn main() {
     //Parse map
-    let path = Path::new("src/day21_part1/test_input.txt");
+    let path = Path::new("src/day21_part1/input.txt");
     let mut map = parse_data(&path);
 
     //Record starting tile_position. Per problem statement, this is a garden
@@ -31,9 +30,12 @@ fn main() {
     let starting_position = find_starting_position(&map);
     map[starting_position.0][starting_position.1] = GARDEN_PLOT;
 
-    //Solve using dynamic programming
-    let num_positions = get_possible_num_positions(starting_position, &map);
-    println!("Num positions = {}", num_positions.to_formatted_string(&Locale::en));
+    //Solve and print answer for select inputs.
+    for i in 0..3 {
+        let max_steps = 65 + i*131;
+        let num_positions = get_possible_num_positions(starting_position, max_steps, &map);
+        println!("{}, {}", max_steps, num_positions);
+    }
 }
 
 fn parse_data(path: &Path) -> Vec<Vec<char>> {
@@ -58,8 +60,8 @@ fn find_starting_position(data: &Vec<Vec<char>>) -> UnsignedCoordinate {
     panic!("Couldn't find starting tile_position");
 }
 
-fn get_possible_num_positions(initial_position: UnsignedCoordinate, map: &Vec<Vec<char>>) -> usize {
-    let initial_state = WalkState {map_position: to_signed_coordinate(initial_position),  tile_position: initial_position, steps_left: MAX_NUM_STEPS };
+fn get_possible_num_positions(initial_position: UnsignedCoordinate, max_steps: u64, map: &Vec<Vec<char>>) -> usize {
+    let initial_state = WalkState {map_position: to_signed_coordinate(initial_position),  tile_position: initial_position, steps_left: max_steps };
     let initial_visited = HashSet::<SignedCoordinate>::new();
     let mut final_positions = HashSet::<SignedCoordinate>::new();
     let mut solved_states = HashSet::<WalkState>::new();

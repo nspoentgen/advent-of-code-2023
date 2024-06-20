@@ -172,6 +172,10 @@ path = "src/day21_part1/main.rs"
 name = "day21_part2"
 path = "src/day21_part2/main.rs"
 
+[[bin]]
+name = "day22_part1"
+path = "src/day22_part1/main.rs"
+
 [dependencies]
 num-format = "0.4.4"
 regex = "1.10.2"
