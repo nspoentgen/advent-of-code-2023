@@ -82,7 +82,8 @@ fn get_max_steps(start_pos: &(usize, usize), end_pos: &(usize, usize), map: &Vec
     let start_cache_key: CacheKey = CacheKey{position: *start_pos, incoming_direction: South};
     let end_cache_key: CacheKey = CacheKey{position: *end_pos, incoming_direction: South};
 
-    let mut cache = HashMap::<CacheKey, usize>::new();
+    let mut result_cache = HashMap::<CacheKey, usize>::new();
+    let mut required_unvisited_tiles_map = HashMap::<CacheKey, HashSet<(usize, usize)>>::new();
     let mut work_stack = Vec::<(CacheKey, HashSet<(usize, usize)>)>::new();
     let mut initial_path = HashSet::<(usize, usize)>::new();
     initial_path.insert(*start_pos);
@@ -91,20 +92,33 @@ fn get_max_steps(start_pos: &(usize, usize), end_pos: &(usize, usize), map: &Vec
     while work_stack.len() > 0 {
         let work_item = work_stack.pop().unwrap();
 
-        if cache.contains_key(&work_item.0) {
+        if work_item.0 == (CacheKey{position: (4,11), incoming_direction: North}) {
+            let mut foo = 1;
+            foo += 1;
+            foo += 1;
+        }
+
+        if result_cache.contains_key(&work_item.0) {
             continue;
         }
 
         if work_item.0 == end_cache_key {
-            cache.insert(work_item.0, 1);
+            result_cache.insert(work_item.0.clone(), 1);
+
+            let mut unvisited_tiles_required = HashSet::<(usize, usize)>::new();
+            unvisited_tiles_required.insert(work_item.0.position.clone());
+            required_unvisited_tiles_map.insert(work_item.0, unvisited_tiles_required);
         } else {
             let mut max_substeps = 0usize;
+            let mut max_position_cache_key = None;
             let mut additional_work_items = vec![];
 
             for next_position in get_valid_moves(&work_item.0.position, map, &work_item.1) {
-                if let Some(result) = cache.get(&next_position) {
-                    if *result > max_substeps {
-                        max_substeps = *result;
+                let lookup_result = result_cache.get(&next_position);
+                if lookup_result.is_some() && cache_constraints_satisfied(&work_item.1, &required_unvisited_tiles_map[&next_position]) {
+                    if *lookup_result.unwrap() > max_substeps {
+                        max_substeps = *lookup_result.unwrap();
+                        max_position_cache_key = Some(next_position);
                     }
                 } else {
                     let mut path = work_item.1.clone();
@@ -116,7 +130,15 @@ fn get_max_steps(start_pos: &(usize, usize), end_pos: &(usize, usize), map: &Vec
             // If the child paths have not been found, we need to requeue this spot to ensure
             // this spot's max step count gets updated when all child paths have been found
             if additional_work_items.len() == 0 {
-                cache.insert(work_item.0, if max_substeps == 0 { 0 } else { max_substeps + 1 });
+                result_cache.insert(work_item.0.clone(), if max_substeps == 0 { 0 } else { max_substeps + 1 });
+
+                if max_substeps > 0 {
+                    let mut unvisited_tiles_required = required_unvisited_tiles_map[&max_position_cache_key.unwrap()].clone();
+                    unvisited_tiles_required.insert(work_item.0.position.clone());
+                    required_unvisited_tiles_map.insert(work_item.0, unvisited_tiles_required);
+                } else {
+                    required_unvisited_tiles_map.insert(work_item.0, HashSet::<(usize, usize)>::new());
+                }
             } else {
                 additional_work_items.push((work_item.0, work_item.1.clone()));
                 work_stack.extend(additional_work_items.into_iter().rev());
@@ -127,7 +149,7 @@ fn get_max_steps(start_pos: &(usize, usize), end_pos: &(usize, usize), map: &Vec
     for row in 0..map.len() {
         for col in 0..map[0].len() {
             for direction in [North, East, South, West] {
-                if let Some(result) = cache.get(&CacheKey{ position: (row, col), incoming_direction: direction }) {
+                if let Some(result) = result_cache.get(&CacheKey{ position: (row, col), incoming_direction: direction }) {
                     println!("({}, {}, {:?}) = {}", row, col, direction, result);
                 }
             }
@@ -135,5 +157,16 @@ fn get_max_steps(start_pos: &(usize, usize), end_pos: &(usize, usize), map: &Vec
     }
 
     //The initial position doesn't count as a step so subtract 1
-    return cache[&start_cache_key] - 1;
+    return result_cache[&start_cache_key] - 1;
+}
+
+fn cache_constraints_satisfied(path: &HashSet<(usize, usize)>, required_unvisited_tiles: &HashSet<(usize, usize)>) -> bool {
+    let result = path.iter().all(|x| !required_unvisited_tiles.contains(x));
+    if !result {
+        let mut foo = 1;
+        foo += 1;
+        foo += 1;
+    }
+
+    return result;
 }
