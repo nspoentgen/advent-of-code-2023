@@ -61,13 +61,13 @@ fn get_possible_num_positions(initial_position: Coordinate, map: &Vec<Vec<char>>
     let mut final_positions = HashSet::<Coordinate>::new();
     let mut solved_states = HashSet::<WalkState>::new();
 
-    let mut work_queue = Vec::<WalkState>::new();
-    work_queue.push(initial_state.clone());
+    let mut work_stack = Vec::<WalkState>::new();
+    work_stack.push(initial_state.clone());
 
-    while work_queue.len() > 0 {
-        let next_work_item = work_queue.pop().unwrap();
+    while work_stack.len() > 0 {
+        let next_work_item = work_stack.pop().unwrap();
         let additional_work_items = walk(next_work_item, &mut final_positions, &mut solved_states, map);
-        work_queue.extend(additional_work_items.into_iter().rev());
+        work_stack.extend(additional_work_items.into_iter().rev());
     }
 
     return final_positions.len();
