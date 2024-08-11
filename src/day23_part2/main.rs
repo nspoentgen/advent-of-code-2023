@@ -3,23 +3,16 @@ use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::path::Path;
 use num_format::{Locale, ToFormattedString};
-use Direction::*;
+use num_format::Locale::en;
 
 const PATH: char = '.';
 const FOREST: char = '#';
 
-#[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
-enum Direction { North, East, South, West }
-
-#[derive(PartialEq, Eq, Clone, Hash, Debug)]
-struct CacheKey {
-    pub position: (usize, usize),
-    pub incoming_direction: Direction,
-}
+type WorkItem = ((usize, usize), HashSet::<(usize, usize)>);
 
 
 fn main() {
-    let path = Path::new("src/day23_part1/test_input.txt");
+    let path = Path::new("src/day23_part1/input.txt");
     let map = parse_data(&path);
     let (start_pos, end_pos) = find_terminal_positions(&map);
     let max_steps = get_max_steps(&start_pos, &end_pos, &map);
@@ -45,128 +38,104 @@ fn find_terminal_positions(map: &Vec<Vec<char>>) -> ((usize, usize), (usize, usi
     return ((0, start_col), (map.len() - 1, end_col));
 }
 
-fn get_valid_moves(position: &(usize, usize), map: &Vec<Vec<char>>, path: &HashSet<(usize, usize)>) -> Vec<CacheKey> {
+
+
+fn get_max_steps(start_pos: &(usize, usize), end_pos: &(usize, usize), map: &Vec<Vec<char>>) -> usize {
+    //DFS
+    let mut max_steps = 0usize;
+    let mut work_stack = Vec::<WorkItem>::new();
+    let mut initial_visited = HashSet::<(usize, usize)>::new();
+    initial_visited.insert(start_pos.clone());
+    work_stack.extend(generate_work_items(start_pos, map, &initial_visited));
+
+    //let mut iteration = 0usize;
+
+    while work_stack.len() > 0 {
+        let mut work_item = work_stack.pop().unwrap();
+        //iteration += 1;
+        //println!("Iteration = {}. Position = ({}, {})", iteration, work_item.0.0, work_item.0.1);
+
+        if work_item.0 == *end_pos {
+            work_item.1.insert(work_item.0);
+
+            if work_item.1.len() > max_steps {
+                max_steps = work_item.1.len() - 1; //-1 to account for fact that first tile doesn't count as a step
+            }
+        } else {
+            work_stack.extend(generate_work_items(&work_item.0, map, &work_item.1))
+        }
+    }
+
+    return max_steps;
+}
+
+fn generate_work_items(current_pos: &(usize, usize), map: &Vec<Vec<char>>, visited: &HashSet<(usize, usize)>) -> Vec<WorkItem> {
+    let mut work_items = Vec::<WorkItem>::new();
+
+    for valid_move in get_valid_preprocessed_moves(current_pos, map, visited) {
+        let mut child_visited = visited.clone();
+        child_visited.insert(current_pos.clone());
+        work_items.push((valid_move, child_visited));
+    }
+
+    return work_items;
+}
+
+fn preprocess_graph(map: &Vec<Vec<char>>, start_pos: &(usize, usize), end_pos: &(usize, usize)) -> HashMap<(usize, usize), Vec<((usize, usize), usize)>> {
+    let mut preprocess_graph = HashMap::<(usize, usize), Vec<((usize, usize), usize)>>::new();
+    let junction_tiles = find_junction_tiles(map, start_pos, end_pos);
+}
+
+fn find_junction_tiles(map: &Vec<Vec<char>>, start_pos: &(usize, usize), end_pos: &(usize, usize)) -> Vec<(usize, usize)> {
+    let mut junction_tiles = Vec::<(usize, usize)>::new();
+
+    for row in 0..map.iter().len() {
+        for col in 0..map[row].iter().len() {
+            if (row, col) == *start_pos ||
+                (row, col) == *end_pos ||
+                get_valid_moves(&(row, col), map).len() > 1 {
+
+                junction_tiles.push((row, col));
+            }
+        }
+    }
+
+    return junction_tiles;
+}
+
+fn get_valid_moves(position: &(usize, usize), map: &Vec<Vec<char>>) -> HashSet<(usize, usize)> {
     let deltas = [(0, -1), (0, 1), (-1, 0), (1, 0)];
 
     let signed_position = (position.0 as isize, position.1 as isize);
-    let mut valid_positions = Vec::<CacheKey>::new();
+    let mut valid_positions = HashSet::<(usize, usize)>::new();
 
     for delta in deltas {
         let test_position = (signed_position.0 + delta.0, signed_position.1 + delta.1);
         if test_position.0 >= 0 && test_position.0 < map.len() as isize && test_position.1 >= 0 &&
-            test_position.1 < map[0].len() as isize && map[test_position.0 as usize][test_position.1 as usize] != FOREST &&
-            !path.contains(&(test_position.0 as usize, test_position.1 as usize))
+            test_position.1 < map[0].len() as isize && map[test_position.0 as usize][test_position.1 as usize] != FOREST
         {
-            let unsigned_test_position = (test_position.0 as usize, test_position.1 as usize);
-            let direction = get_direction(&position, &unsigned_test_position);
-            valid_positions.push(CacheKey{ position: unsigned_test_position, incoming_direction: direction});
+            valid_positions.insert( (test_position.0 as usize, test_position.1 as usize));
         }
     }
 
     return valid_positions;
 }
 
-fn get_direction(current_pos: &(usize, usize), next_pos: &(usize, usize)) -> Direction {
-    return if next_pos.0 < current_pos.0  {
-        North
-    } else if next_pos.1 > current_pos.1 {
-        East
-    } else if next_pos.0 > current_pos.0 {
-        South
-    } else {
-        West
-    }
-}
+fn get_valid_moves_no_overlap(position: &(usize, usize), map: &Vec<Vec<char>>, visited: &HashSet<(usize, usize)>) -> Vec<(usize, usize)> {
+    let deltas = [(0, -1), (0, 1), (-1, 0), (1, 0)];
 
-fn get_max_steps(start_pos: &(usize, usize), end_pos: &(usize, usize), map: &Vec<Vec<char>>) -> usize {
-    let start_cache_key: CacheKey = CacheKey{position: *start_pos, incoming_direction: South};
-    let end_cache_key: CacheKey = CacheKey{position: *end_pos, incoming_direction: South};
+    let signed_position = (position.0 as isize, position.1 as isize);
+    let mut valid_positions = Vec::<(usize, usize)>::new();
 
-    let mut result_cache = HashMap::<CacheKey, usize>::new();
-    let mut required_unvisited_tiles_map = HashMap::<CacheKey, HashSet<(usize, usize)>>::new();
-    let mut work_stack = Vec::<(CacheKey, HashSet<(usize, usize)>)>::new();
-    let mut initial_path = HashSet::<(usize, usize)>::new();
-    initial_path.insert(*start_pos);
-    work_stack.push((start_cache_key.clone(), initial_path));
-
-    while work_stack.len() > 0 {
-        let work_item = work_stack.pop().unwrap();
-
-        if work_item.0 == (CacheKey{position: (4,11), incoming_direction: North}) {
-            let mut foo = 1;
-            foo += 1;
-            foo += 1;
-        }
-
-        if result_cache.contains_key(&work_item.0) {
-            continue;
-        }
-
-        if work_item.0 == end_cache_key {
-            result_cache.insert(work_item.0.clone(), 1);
-
-            let mut unvisited_tiles_required = HashSet::<(usize, usize)>::new();
-            unvisited_tiles_required.insert(work_item.0.position.clone());
-            required_unvisited_tiles_map.insert(work_item.0, unvisited_tiles_required);
-        } else {
-            let mut max_substeps = 0usize;
-            let mut max_position_cache_key = None;
-            let mut additional_work_items = vec![];
-
-            for next_position in get_valid_moves(&work_item.0.position, map, &work_item.1) {
-                let lookup_result = result_cache.get(&next_position);
-                if lookup_result.is_some() && cache_constraints_satisfied(&work_item.1, &required_unvisited_tiles_map[&next_position]) {
-                    if *lookup_result.unwrap() > max_substeps {
-                        max_substeps = *lookup_result.unwrap();
-                        max_position_cache_key = Some(next_position);
-                    }
-                } else {
-                    let mut path = work_item.1.clone();
-                    path.insert(work_item.0.position);
-                    additional_work_items.push((next_position, path));
-                }
-            }
-
-            // If the child paths have not been found, we need to requeue this spot to ensure
-            // this spot's max step count gets updated when all child paths have been found
-            if additional_work_items.len() == 0 {
-                result_cache.insert(work_item.0.clone(), if max_substeps == 0 { 0 } else { max_substeps + 1 });
-
-                if max_substeps > 0 {
-                    let mut unvisited_tiles_required = required_unvisited_tiles_map[&max_position_cache_key.unwrap()].clone();
-                    unvisited_tiles_required.insert(work_item.0.position.clone());
-                    required_unvisited_tiles_map.insert(work_item.0, unvisited_tiles_required);
-                } else {
-                    required_unvisited_tiles_map.insert(work_item.0, HashSet::<(usize, usize)>::new());
-                }
-            } else {
-                additional_work_items.push((work_item.0, work_item.1.clone()));
-                work_stack.extend(additional_work_items.into_iter().rev());
-            }
+    for delta in deltas {
+        let test_position = (signed_position.0 + delta.0, signed_position.1 + delta.1);
+        if test_position.0 >= 0 && test_position.0 < map.len() as isize && test_position.1 >= 0 &&
+            test_position.1 < map[0].len() as isize && map[test_position.0 as usize][test_position.1 as usize] != FOREST &&
+            !visited.contains(&(test_position.0 as usize, test_position.1 as usize))
+        {
+            valid_positions.push( (test_position.0 as usize, test_position.1 as usize));
         }
     }
 
-    for row in 0..map.len() {
-        for col in 0..map[0].len() {
-            for direction in [North, East, South, West] {
-                if let Some(result) = result_cache.get(&CacheKey{ position: (row, col), incoming_direction: direction }) {
-                    println!("({}, {}, {:?}) = {}", row, col, direction, result);
-                }
-            }
-        }
-    }
-
-    //The initial position doesn't count as a step so subtract 1
-    return result_cache[&start_cache_key] - 1;
-}
-
-fn cache_constraints_satisfied(path: &HashSet<(usize, usize)>, required_unvisited_tiles: &HashSet<(usize, usize)>) -> bool {
-    let result = path.iter().all(|x| !required_unvisited_tiles.contains(x));
-    if !result {
-        let mut foo = 1;
-        foo += 1;
-        foo += 1;
-    }
-
-    return result;
+    return valid_positions;
 }
