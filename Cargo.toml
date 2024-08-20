@@ -188,6 +188,10 @@ path = "src/day23_part1/main.rs"
 name = "day23_part2"
 path = "src/day23_part2/main.rs"
 
+[[bin]]
+name = "day24_part1"
+path = "src/day24_part1/main.rs"
+
 [dependencies]
 num-format = "0.4.4"
 regex = "1.10.2"
@@ -197,3 +201,6 @@ lazy_static = "1.4.0"
 rayon = "1.8.1"
 log = "0.4.20"
 timeit = "0.1.2"
+ndarray = "0.15.2"
+nalgebra = "0.33.0"
+
