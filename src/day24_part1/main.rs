@@ -7,7 +7,7 @@ use num_format::{Locale, ToFormattedString};
 use nalgebra::{Const, Matrix2, Matrix3, OMatrix, Vector2, Vector3};
 
 fn main() {
-    let lower_bound =200000000000000.0;
+    let lower_bound = 200000000000000.0;
     let upper_bound = 400000000000000.0;
 
     let path = Path::new("src/day24_part1/input.txt");
