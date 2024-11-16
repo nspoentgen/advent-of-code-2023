@@ -2,21 +2,32 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Write};
+use std::ops::Index;
 use std::path::Path;
 use itertools::Itertools;
-use ndarray::s;
+use rand::Rng;
 use num_format::Locale::{se, sr};
+use serde_with::serde_as;
+use serde_with::serde_derive::{Deserialize, Serialize};
+use serde_json::Result;
 
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Hash, Clone, Serialize, Deserialize)]
 pub struct GraphNode {
-    pub Node: String,
-    pub Contractions: Vec<(String, String)>
+    pub node: String,
+    pub contractions: Vec<(String, String)>
+}
+
+#[serde_as]
+#[derive(Serialize, Deserialize, Debug)]
+struct GraphWrapper {
+    #[serde_as(as = "Vec<(_, _)>")]
+    x: HashMap::<String, Vec<GraphNode>>,
 }
 
 impl PartialEq<Self> for GraphNode {
     fn eq(&self, other: &Self) -> bool {
-        return self.Node == other.Node;
+        return self.node == other.node;
     }
 }
 
@@ -26,7 +37,7 @@ impl Eq for GraphNode {
 
 fn main() {
     let path = Path::new("src/day25/test_input.txt");
-    let mut data = parse_data(&path);
+    let data = parse_data(&path);
 
     let mut graph: HashMap::<String, Vec<GraphNode>> = HashMap::<String, Vec<GraphNode>>::new();
     for (src, connections) in data {
@@ -34,17 +45,21 @@ fn main() {
 
         for connection in connections {
             graph.get_mut(&src).unwrap().push(GraphNode {
-                Node: connection,
-                Contractions: Vec::<(String, String)>::new()
+                node: connection,
+                contractions: Vec::<(String, String)>::new()
             });
         }
     }
 
-    //println!("{:?}", data)
-    println!("{:?}", graph);
-    contract(&"xhk".to_string(), &"hfx".to_string(), &mut graph);
-    println!("---------------------------------------");
-    println!("{:?}", graph);
+    for _ in 0usize..1 {
+        let mut fresh_graph = graph.clone();
+        reduce_map(&mut fresh_graph);
+        println!("Results: {:?}", fresh_graph.keys().collect_vec());
+
+        let mut result_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\results.txt"#).unwrap();
+        result_file.write(serde_json::to_string_pretty(&fresh_graph).unwrap().as_ref()).expect("Couldn't write results to file");
+    }
+
 }
 
 fn parse_data(path: &Path) -> HashMap<String, HashSet<String>> {
@@ -85,32 +100,67 @@ fn parse_data(path: &Path) -> HashMap<String, HashSet<String>> {
     return graph;
 }
 
+//Contract vertex 2 into vertex 1
 fn contract(vertex1: &String, vertex2: &String, graph: &mut HashMap<String, Vec<GraphNode>>) {
     //Pull vertex 2 into vertex 1
-    let mut vertex1Nodes = graph.remove(vertex1).unwrap();
-    let mut vertex2Nodes = graph.remove(vertex2).unwrap();
+    let mut vertex1_nodes = graph.remove(vertex1).unwrap();
+    let mut vertex2_nodes = graph.remove(vertex2).unwrap();
 
-    for index in 0..vertex1Nodes.len() {
-        if vertex1Nodes[index].Node == *vertex2 {
-            vertex1Nodes.remove(index);
-            break;
-        }
+    vertex2_nodes.remove(vertex2_nodes.iter().position(|x| *x.node == *vertex1).unwrap());
+
+    for node in &mut vertex2_nodes {
+        node.contractions.push((vertex2.clone(), node.node.clone()));
     }
 
-    for mut node in &mut vertex2Nodes {
-        node.Contractions.push((vertex2.clone(), node.Node.clone()));
-    }
+    vertex1_nodes.extend(vertex2_nodes);
+    vertex1_nodes = vertex1_nodes.clone().into_iter().unique().collect_vec();
 
-    vertex1Nodes.extend(vertex2Nodes);
-    vertex1Nodes = vertex1Nodes.clone().into_iter().unique().collect_vec();
-
-    for graphNode in graph.values_mut() {
-        for node in graphNode {
-            if node.Node == *vertex2 {
-                node.Node = vertex1.to_string();
+    for graph_node in graph.values_mut() {
+        for node in graph_node {
+            if node.node == *vertex2 {
+                node.node = vertex1.to_string();
             }
         }
     }
 
-    graph.insert(vertex1.clone(), vertex1Nodes);
+    graph.insert(vertex1.clone(), vertex1_nodes);
+
+    //After update, update reference to vertex 2 and remove any self-references
+    for entry in &mut *graph {
+        for index in (0usize..entry.1.len()).into_iter().rev() {
+            if entry.1[index].node == *vertex2 {
+                entry.1[index].node = vertex1.clone();
+            }
+        }
+    }
+
+    let keys = graph.keys().map(|x| (*x).clone()).collect_vec();
+    for key in keys {
+        for index in (0usize..graph[&key].len()).into_iter().rev() {
+            if graph[&key][index].node == key {
+                graph.get_mut(&key).unwrap().remove(index);
+            }
+        }
+    }
+}
+
+fn reduce_map(graph: &mut HashMap<String, Vec<GraphNode>>) {
+    let mut rng = rand::thread_rng();
+
+    while graph.keys().len() > 2 {
+        let key_index = rng.gen_range(0usize..graph.keys().len());
+        let key = graph.keys().collect_vec()[key_index].clone();
+        let value_index = rng.gen_range(0usize..graph[&key].len());
+        let value = graph[&key][value_index].node.clone();
+
+        println!("Contracting {value} into {key}");
+        contract(&key, &value, graph);
+
+        for entry in &mut *graph {
+            if entry.1.iter().any(|x| x.node == *entry.0){
+                println!("common entry: {}", *entry.0);
+                let foo = 1;
+            }
+        }
+    }
 }

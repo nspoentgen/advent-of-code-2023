@@ -1,0 +1,82 @@
+{
+  "rsh": [
+    {
+      "node": "ntq",
+      "contractions": []
+    },
+    {
+      "node": "ntq",
+      "contractions": []
+    },
+    {
+      "node": "ntq",
+      "contractions": []
+    },
+    {
+      "node": "ntq",
+      "contractions": []
+    }
+  ],
+  "ntq": [
+    {
+      "node": "rsh",
+      "contractions": [
+        [
+          "pzl",
+          "rsh"
+        ],
+        [
+          "cmg",
+          "rsh"
+        ]
+      ]
+    },
+    {
+      "node": "rsh",
+      "contractions": [
+        [
+          "rzs",
+          "rsh"
+        ],
+        [
+          "pzl",
+          "rsh"
+        ],
+        [
+          "cmg",
+          "rsh"
+        ]
+      ]
+    },
+    {
+      "node": "rsh",
+      "contractions": [
+        [
+          "lsr",
+          "rsh"
+        ],
+        [
+          "lhk",
+          "rsh"
+        ]
+      ]
+    },
+    {
+      "node": "rsh",
+      "contractions": [
+        [
+          "frs",
+          "rsh"
+        ],
+        [
+          "lsr",
+          "rsh"
+        ],
+        [
+          "lhk",
+          "rsh"
+        ]
+      ]
+    }
+  ]
+}
