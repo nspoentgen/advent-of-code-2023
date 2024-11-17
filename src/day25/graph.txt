@@ -1,295 +1,427 @@
 {
-  "ntq": [
-    {
-      "node": "bvb",
-      "contractions": []
-    },
-    {
-      "node": "jqt",
-      "contractions": []
-    },
-    {
-      "node": "xhk",
-      "contractions": []
-    },
-    {
-      "node": "hfx",
-      "contractions": []
-    }
-  ],
-  "lhk": [
-    {
-      "node": "cmg",
-      "contractions": []
-    },
-    {
-      "node": "frs",
-      "contractions": []
-    },
-    {
-      "node": "lsr",
-      "contractions": []
-    },
-    {
-      "node": "nvd",
-      "contractions": []
-    }
-  ],
-  "rzs": [
-    {
-      "node": "qnr",
-      "contractions": []
-    },
-    {
-      "node": "cmg",
-      "contractions": []
-    },
-    {
-      "node": "lsr",
-      "contractions": []
-    },
-    {
-      "node": "rsh",
-      "contractions": []
-    }
-  ],
-  "frs": [
-    {
-      "node": "qnr",
-      "contractions": []
-    },
-    {
-      "node": "rsh",
-      "contractions": []
-    },
-    {
-      "node": "lhk",
-      "contractions": []
-    },
-    {
-      "node": "lsr",
-      "contractions": []
-    }
-  ],
-  "cmg": [
-    {
-      "node": "bvb",
-      "contractions": []
-    },
-    {
-      "node": "qnr",
-      "contractions": []
-    },
-    {
-      "node": "rzs",
-      "contractions": []
-    },
-    {
-      "node": "lhk",
-      "contractions": []
-    },
-    {
-      "node": "nvd",
-      "contractions": []
-    }
-  ],
-  "xhk": [
-    {
-      "node": "bvb",
-      "contractions": []
-    },
-    {
-      "node": "ntq",
-      "contractions": []
-    },
-    {
-      "node": "hfx",
-      "contractions": []
-    },
-    {
-      "node": "rhn",
-      "contractions": []
-    },
-    {
-      "node": "jqt",
-      "contractions": []
-    }
-  ],
   "rhn": [
     {
-      "node": "bvb",
+      "node": "jqt",
+      "original_node": "jqt",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "hfx",
+      "original_node": "hfx",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "xhk",
+      "original_node": "xhk",
+      "contracted": false,
       "contractions": []
     },
     {
-      "node": "jqt",
-      "contractions": []
-    }
-  ],
-  "rsh": [
-    {
-      "node": "rzs",
-      "contractions": []
-    },
-    {
-      "node": "lsr",
-      "contractions": []
-    },
-    {
-      "node": "frs",
-      "contractions": []
-    },
-    {
-      "node": "pzl",
+      "node": "bvb",
+      "original_node": "bvb",
+      "contracted": false,
       "contractions": []
     }
   ],
   "bvb": [
     {
       "node": "ntq",
-      "contractions": []
-    },
-    {
-      "node": "cmg",
-      "contractions": []
-    },
-    {
-      "node": "xhk",
+      "original_node": "ntq",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "hfx",
+      "original_node": "hfx",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "rhn",
+      "original_node": "rhn",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "xhk",
+      "original_node": "xhk",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "cmg",
+      "original_node": "cmg",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "frs": [
+    {
+      "node": "lhk",
+      "original_node": "lhk",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "rsh",
+      "original_node": "rsh",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "lsr",
+      "original_node": "lsr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "qnr",
+      "original_node": "qnr",
+      "contracted": false,
       "contractions": []
     }
   ],
   "pzl": [
     {
-      "node": "hfx",
-      "contractions": []
-    },
-    {
       "node": "rsh",
+      "original_node": "rsh",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "lsr",
+      "original_node": "lsr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "hfx",
+      "original_node": "hfx",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "nvd",
+      "original_node": "nvd",
+      "contracted": false,
       "contractions": []
     }
   ],
-  "hfx": [
+  "jqt": [
     {
-      "node": "bvb",
-      "contractions": []
-    },
-    {
-      "node": "ntq",
-      "contractions": []
-    },
-    {
-      "node": "pzl",
+      "node": "xhk",
+      "original_node": "xhk",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "rhn",
+      "original_node": "rhn",
+      "contracted": false,
       "contractions": []
     },
     {
-      "node": "xhk",
+      "node": "nvd",
+      "original_node": "nvd",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "ntq",
+      "original_node": "ntq",
+      "contracted": false,
       "contractions": []
     }
   ],
   "nvd": [
     {
-      "node": "qnr",
-      "contractions": []
-    },
-    {
-      "node": "cmg",
-      "contractions": []
-    },
-    {
       "node": "lhk",
-      "contractions": []
-    },
-    {
-      "node": "pzl",
+      "original_node": "lhk",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "jqt",
+      "original_node": "jqt",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "qnr",
+      "original_node": "qnr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "cmg",
+      "original_node": "cmg",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "pzl",
+      "original_node": "pzl",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "xhk": [
+    {
+      "node": "jqt",
+      "original_node": "jqt",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "ntq",
+      "original_node": "ntq",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "hfx",
+      "original_node": "hfx",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "rhn",
+      "original_node": "rhn",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "bvb",
+      "original_node": "bvb",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "ntq": [
+    {
+      "node": "jqt",
+      "original_node": "jqt",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "xhk",
+      "original_node": "xhk",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "bvb",
+      "original_node": "bvb",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "hfx",
+      "original_node": "hfx",
+      "contracted": false,
       "contractions": []
     }
   ],
   "lsr": [
     {
       "node": "rzs",
-      "contractions": []
-    },
-    {
-      "node": "rsh",
+      "original_node": "rzs",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "lhk",
+      "original_node": "lhk",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "rsh",
+      "original_node": "rsh",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "pzl",
+      "original_node": "pzl",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "frs",
+      "original_node": "frs",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "cmg": [
+    {
+      "node": "rzs",
+      "original_node": "rzs",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "lhk",
+      "original_node": "lhk",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "qnr",
+      "original_node": "qnr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "nvd",
+      "original_node": "nvd",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "bvb",
+      "original_node": "bvb",
+      "contracted": false,
       "contractions": []
     }
   ],
   "qnr": [
     {
-      "node": "cmg",
+      "node": "rzs",
+      "original_node": "rzs",
+      "contracted": false,
       "contractions": []
     },
     {
-      "node": "rzs",
+      "node": "nvd",
+      "original_node": "nvd",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "frs",
+      "original_node": "frs",
+      "contracted": false,
       "contractions": []
     },
     {
-      "node": "nvd",
+      "node": "cmg",
+      "original_node": "cmg",
+      "contracted": false,
       "contractions": []
     }
   ],
-  "jqt": [
+  "hfx": [
     {
       "node": "ntq",
+      "original_node": "ntq",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "xhk",
+      "original_node": "xhk",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "rhn",
+      "original_node": "rhn",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "bvb",
+      "original_node": "bvb",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "pzl",
+      "original_node": "pzl",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "lhk": [
+    {
+      "node": "lsr",
+      "original_node": "lsr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "frs",
+      "original_node": "frs",
+      "contracted": false,
       "contractions": []
     },
     {
       "node": "nvd",
+      "original_node": "nvd",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "cmg",
+      "original_node": "cmg",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "rzs": [
+    {
+      "node": "rsh",
+      "original_node": "rsh",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "cmg",
+      "original_node": "cmg",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "lsr",
+      "original_node": "lsr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "qnr",
+      "original_node": "qnr",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "rsh": [
+    {
+      "node": "rzs",
+      "original_node": "rzs",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "frs",
+      "original_node": "frs",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "lsr",
+      "original_node": "lsr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "pzl",
+      "original_node": "pzl",
+      "contracted": false,
       "contractions": []
     }
   ]

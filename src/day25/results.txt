@@ -1,35 +1,64 @@
 {
-  "ntq": [
+  "lsr": [
     {
-      "node": "rzs",
-      "contractions": []
-    },
-    {
-      "node": "rzs",
-      "contractions": []
-    },
-    {
-      "node": "rzs",
-      "contractions": []
-    },
-    {
-      "node": "rzs",
+      "node": "lhk",
+      "original_node": "lhk",
+      "contracted": false,
       "contractions": [
-        [
-          "cmg",
-          "rzs"
-        ],
-        [
-          "bvb",
-          "rzs"
-        ]
+        {
+          "left": "cmg",
+          "right": "lhk"
+        },
+        {
+          "left": "qnr",
+          "right": "nvd"
+        },
+        {
+          "left": "rzs",
+          "right": "rsh"
+        },
+        {
+          "left": "cmg",
+          "right": "nvd"
+        },
+        {
+          "left": "qnr",
+          "right": "frs"
+        }
       ]
     }
   ],
-  "rzs": [
+  "lhk": [
     {
-      "node": "ntq",
-      "contractions": []
+      "node": "lsr",
+      "original_node": "lsr",
+      "contracted": false,
+      "contractions": [
+        {
+          "left": "hfx",
+          "right": "lsr"
+        },
+        {
+          "left": "bvb",
+          "right": "rzs"
+        },
+        {
+          "left": "bvb",
+          "right": "lsr"
+        },
+        {
+          "left": "nvd",
+          "right": "qnr"
+        },
+        {
+          "left": "frs",
+          "right": "lsr"
+        },
+        {
+          "left": "pzl",
+          "right": "cmg"
+        }
+      ]
     }
   ]
 }

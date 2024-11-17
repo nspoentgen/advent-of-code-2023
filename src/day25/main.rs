@@ -3,26 +3,17 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
-use std::ops::Index;
 use std::path::Path;
 use itertools::Itertools;
 use rand::Rng;
-use num_format::Locale::{se, sr};
-use serde_with::serde_as;
 use serde_with::serde_derive::{Deserialize, Serialize};
-use serde_json::Result;
 
 #[derive(Debug, Hash, Clone, Serialize, Deserialize)]
 pub struct GraphNode {
     pub node: String,
-    pub contractions: Vec<(String, String)>
-}
-
-#[serde_as]
-#[derive(Serialize, Deserialize, Debug)]
-struct GraphWrapper {
-    #[serde_as(as = "Vec<(_, _)>")]
-    x: HashMap::<String, Vec<GraphNode>>,
+    pub original_node: String,
+    pub contracted: bool,
+    pub contractions: Vec<UnorderedPair<String>>
 }
 
 impl PartialEq<Self> for GraphNode {
@@ -32,6 +23,23 @@ impl PartialEq<Self> for GraphNode {
 }
 
 impl Eq for GraphNode {
+
+}
+
+#[derive(Debug, Hash, Clone, Serialize, Deserialize)]
+struct UnorderedPair<T> {
+    left: T,
+    right: T
+}
+
+impl<T: PartialEq> PartialEq<Self> for UnorderedPair<T> {
+    fn eq(&self, other: &Self) -> bool {
+        return (self.left == other.left && self.right == other.right) ||
+            (self.left == other.right && self.right == other.left);
+    }
+}
+
+impl<T: PartialEq> Eq for UnorderedPair<T>{
 
 }
 
@@ -50,7 +58,9 @@ fn main() {
             if node_list.iter().all(|x| x.node != connection) {
                 node_list.push(GraphNode {
                     node: connection.clone(),
-                    contractions: Vec::<(String, String)>::new()
+                    original_node: connection.clone(),
+                    contracted: false,
+                    contractions: Vec::<UnorderedPair<String>>::new()
                 });
             }
 
@@ -63,7 +73,9 @@ fn main() {
             if node_list.iter().all(|x| x.node != src) {
                 node_list.push(GraphNode {
                     node: src.clone(),
-                    contractions: Vec::<(String, String)>::new()
+                    original_node: src.clone(),
+                    contracted: false,
+                    contractions: Vec::<UnorderedPair<String>>::new()
                 });
             }
         }
@@ -76,9 +88,6 @@ fn main() {
         let mut fresh_graph = graph.clone();
         reduce_map(&mut fresh_graph);
         println!("Results: {:?}", fresh_graph.keys().collect_vec());
-
-        let mut result_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\results.txt"#).unwrap();
-        result_file.write(serde_json::to_string_pretty(&fresh_graph).unwrap().replace("\n", "\r\n").as_ref());
     }
 
 }
@@ -123,55 +132,70 @@ fn parse_data(path: &Path) -> HashMap<String, HashSet<String>> {
 
 fn reduce_map(graph: &mut HashMap<String, Vec<GraphNode>>) {
     let mut rng = rand::thread_rng();
+    let mut counter = 0usize;
 
     while graph.keys().len() > 2 {
         let key_index = rng.gen_range(0usize..graph.keys().len());
         let key = graph.keys().collect_vec()[key_index].clone();
         let value_index = rng.gen_range(0usize..graph[&key].len());
         let value = graph[&key][value_index].node.clone();
+        let value_original_node = &graph[&key][value_index].original_node.clone();
 
         println!("Contracting {value} into {key}");
-        contract(&key, &value, graph);
+        contract(&key, &value, value_original_node, graph);
 
-        for entry in &mut *graph {
-            if entry.1.iter().any(|x| x.node == *entry.0){
-                println!("common entry: {}", *entry.0);
-                let foo = 1;
-            }
-        }
+        let mut result_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\results.txt"#).unwrap();
+        result_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
+        result_file.flush();
+        println!("Counter = {counter}");
+        counter += 1;
     }
 }
 
 //Contract vertex 2 into vertex 1
-fn contract(vertex1: &String, vertex2: &String, graph: &mut HashMap<String, Vec<GraphNode>>) {
+fn contract(vertex1: &String, vertex2: &String, vertex2_original_node: &String, graph: &mut HashMap<String, Vec<GraphNode>>) {
     //Remove vertex 2 nodes and save a record of the contracted nodes
-    let mut vertex1_nodes = graph.remove(vertex1).unwrap();
+    let vertex1_nodes = graph.remove(vertex1).unwrap();
     let mut vertex2_nodes = graph.remove(vertex2).unwrap();
 
-    vertex2_nodes.remove(vertex2_nodes.iter().position(|x| *x.node == *vertex1).unwrap());
-
-    for node in &mut vertex2_nodes {
-        node.contractions.push((vertex2.clone(), node.node.clone()));
+    for node in vertex2_nodes.iter_mut().filter(|x| !x.contracted) {
+        node.contractions.push(UnorderedPair {
+            left: vertex2_original_node.clone(),
+            right: node.original_node.clone()
+        });
+        node.contracted = true;
     }
 
     //Merge vertex 2 nodes into vertex 1
     let vertex1_nodes = merge_nodes(vertex1_nodes, vertex2_nodes);
-
-    for graph_node in graph.values_mut() {
-        for node in graph_node {
-            if node.node == *vertex2 {
-                node.node = vertex1.to_string();
-            }
-        }
-    }
-
     graph.insert(vertex1.clone(), vertex1_nodes);
 
-    //After update, update reference to vertex 2 and remove any self-references
+    //After update, update references to vertex 2 and then remove any self-references
     for entry in &mut *graph {
+        let mut vertex_updated = false;
+
         for index in (0usize..entry.1.len()).into_iter().rev() {
             if entry.1[index].node == *vertex2 {
                 entry.1[index].node = vertex1.clone();
+                vertex_updated = true;
+            }
+        }
+
+        //Merge duplicate nodes if any
+        if vertex_updated {
+            for index in (0usize..entry.1.len()).into_iter().rev() {
+                if entry.1.iter().filter(|&x| x.node == entry.1[index].node).count() == 1 { continue; }
+
+                if let Some(merge_index) = entry.1.iter().position(|x| x.node == entry.1[index].node) {
+                    let mut merged_contractions = HashSet::<UnorderedPair<String>>::from_iter(entry.1[merge_index].contractions.clone());
+
+                    for contraction in &entry.1[index].contractions {
+                        merged_contractions.insert(contraction.clone());
+                    }
+
+                    entry.1[merge_index].contractions = merged_contractions.into_iter().collect_vec();
+                    entry.1.remove(index);
+                }
             }
         }
     }
@@ -187,31 +211,37 @@ fn contract(vertex1: &String, vertex2: &String, graph: &mut HashMap<String, Vec<
 }
 
 fn merge_nodes(vertex1_nodes: Vec<GraphNode>, mut vertex2_nodes: Vec<GraphNode>) -> Vec<GraphNode> {
+    for node in &vertex1_nodes {
+        if vertex1_nodes.iter().filter(|&x| x.node == node.node).count() > 1 {
+            println!("Foo");
+        }
+    }
+
+    for node in &vertex2_nodes {
+        if vertex2_nodes.iter().filter(|&x| x.node == node.node).count() > 1 {
+            println!("Foo");
+        }
+    }
+
     let mut merged_nodes = Vec::<GraphNode>::from_iter(vertex1_nodes);
 
     for mut vertex2_node in vertex2_nodes {
         if let Some(merged_node_index) = merged_nodes.iter().position(|x| x.node == vertex2_node.node) {
-            //Merge contractions
-            for merged_node_contraction_index in 0..merged_nodes[merged_node_index].contractions.len() {
-                for vertex2_node_contraction_index in (0..vertex2_node.contractions.len()).into_iter().rev() {
-                    if !contraction_equal(&merged_nodes[merged_node_index].contractions[merged_node_contraction_index],
-                        &vertex2_node.contractions[vertex2_node_contraction_index]) {
-                        merged_nodes[merged_node_index].contractions.push(vertex2_node.contractions.remove(vertex2_node_contraction_index))
-                    }
-                }
+            let mut merged_contractions = HashSet::<UnorderedPair<String>>::from_iter(merged_nodes[merged_node_index].contractions.clone());
+            for contraction in vertex2_node.contractions {
+                merged_contractions.insert(contraction);
             }
+            merged_nodes[merged_node_index].contractions = merged_contractions.into_iter().collect_vec();
         } else {
-            if vertex2_node.contractions.is_empty() {
-                println!("foo");
-            }
             merged_nodes.push(vertex2_node);
         }
     }
 
-    return merged_nodes;
-}
+    for node in &merged_nodes {
+        if merged_nodes.iter().filter(|&x| x.node == node.node).count() > 1 {
+            println!("Foo");
+        }
+    }
 
-fn contraction_equal(left: &(String, String), right: &(String, String)) -> bool {
-    return (*left.0 == *right.0 && *left.1 == *right.1) ||
-        (*left.0 == *right.1 && *left.1 == *right.0);
+    return merged_nodes;
 }
