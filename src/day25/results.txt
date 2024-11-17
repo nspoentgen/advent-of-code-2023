@@ -1,82 +1,35 @@
 {
-  "rsh": [
-    {
-      "node": "ntq",
-      "contractions": []
-    },
-    {
-      "node": "ntq",
-      "contractions": []
-    },
-    {
-      "node": "ntq",
-      "contractions": []
-    },
-    {
-      "node": "ntq",
-      "contractions": []
-    }
-  ],
   "ntq": [
     {
-      "node": "rsh",
+      "node": "rzs",
+      "contractions": []
+    },
+    {
+      "node": "rzs",
+      "contractions": []
+    },
+    {
+      "node": "rzs",
+      "contractions": []
+    },
+    {
+      "node": "rzs",
       "contractions": [
-        [
-          "pzl",
-          "rsh"
-        ],
         [
           "cmg",
-          "rsh"
+          "rzs"
+        ],
+        [
+          "bvb",
+          "rzs"
         ]
       ]
-    },
+    }
+  ],
+  "rzs": [
     {
-      "node": "rsh",
-      "contractions": [
-        [
-          "rzs",
-          "rsh"
-        ],
-        [
-          "pzl",
-          "rsh"
-        ],
-        [
-          "cmg",
-          "rsh"
-        ]
-      ]
-    },
-    {
-      "node": "rsh",
-      "contractions": [
-        [
-          "lsr",
-          "rsh"
-        ],
-        [
-          "lhk",
-          "rsh"
-        ]
-      ]
-    },
-    {
-      "node": "rsh",
-      "contractions": [
-        [
-          "frs",
-          "rsh"
-        ],
-        [
-          "lsr",
-          "rsh"
-        ],
-        [
-          "lhk",
-          "rsh"
-        ]
-      ]
+      "node": "ntq",
+      "contractions": []
     }
   ]
 }

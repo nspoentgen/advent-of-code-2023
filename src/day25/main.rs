@@ -41,15 +41,36 @@ fn main() {
 
     let mut graph: HashMap::<String, Vec<GraphNode>> = HashMap::<String, Vec<GraphNode>>::new();
     for (src, connections) in data {
-        graph.insert(src.clone(), Vec::<GraphNode>::new());
+        if !graph.contains_key(&src) {
+            graph.insert(src.clone(), Vec::<GraphNode>::new());
+        }
 
         for connection in connections {
-            graph.get_mut(&src).unwrap().push(GraphNode {
-                node: connection,
-                contractions: Vec::<(String, String)>::new()
-            });
+            let node_list = graph.get_mut(&src).unwrap();
+            if node_list.iter().all(|x| x.node != connection) {
+                node_list.push(GraphNode {
+                    node: connection.clone(),
+                    contractions: Vec::<(String, String)>::new()
+                });
+            }
+
+            //Add the complement mapping
+            if !graph.contains_key(&connection) {
+                graph.insert(connection.clone(), Vec::<GraphNode>::new());
+            }
+
+            let node_list = graph.get_mut(&connection).unwrap();
+            if node_list.iter().all(|x| x.node != src) {
+                node_list.push(GraphNode {
+                    node: src.clone(),
+                    contractions: Vec::<(String, String)>::new()
+                });
+            }
         }
     }
+
+    let mut graph_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\graph.txt"#).unwrap();
+    graph_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
 
     for _ in 0usize..1 {
         let mut fresh_graph = graph.clone();
@@ -57,7 +78,7 @@ fn main() {
         println!("Results: {:?}", fresh_graph.keys().collect_vec());
 
         let mut result_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\results.txt"#).unwrap();
-        result_file.write(serde_json::to_string_pretty(&fresh_graph).unwrap().as_ref()).expect("Couldn't write results to file");
+        result_file.write(serde_json::to_string_pretty(&fresh_graph).unwrap().replace("\n", "\r\n").as_ref());
     }
 
 }
@@ -100,9 +121,30 @@ fn parse_data(path: &Path) -> HashMap<String, HashSet<String>> {
     return graph;
 }
 
+fn reduce_map(graph: &mut HashMap<String, Vec<GraphNode>>) {
+    let mut rng = rand::thread_rng();
+
+    while graph.keys().len() > 2 {
+        let key_index = rng.gen_range(0usize..graph.keys().len());
+        let key = graph.keys().collect_vec()[key_index].clone();
+        let value_index = rng.gen_range(0usize..graph[&key].len());
+        let value = graph[&key][value_index].node.clone();
+
+        println!("Contracting {value} into {key}");
+        contract(&key, &value, graph);
+
+        for entry in &mut *graph {
+            if entry.1.iter().any(|x| x.node == *entry.0){
+                println!("common entry: {}", *entry.0);
+                let foo = 1;
+            }
+        }
+    }
+}
+
 //Contract vertex 2 into vertex 1
 fn contract(vertex1: &String, vertex2: &String, graph: &mut HashMap<String, Vec<GraphNode>>) {
-    //Pull vertex 2 into vertex 1
+    //Remove vertex 2 nodes and save a record of the contracted nodes
     let mut vertex1_nodes = graph.remove(vertex1).unwrap();
     let mut vertex2_nodes = graph.remove(vertex2).unwrap();
 
@@ -112,8 +154,8 @@ fn contract(vertex1: &String, vertex2: &String, graph: &mut HashMap<String, Vec<
         node.contractions.push((vertex2.clone(), node.node.clone()));
     }
 
-    vertex1_nodes.extend(vertex2_nodes);
-    vertex1_nodes = vertex1_nodes.clone().into_iter().unique().collect_vec();
+    //Merge vertex 2 nodes into vertex 1
+    let vertex1_nodes = merge_nodes(vertex1_nodes, vertex2_nodes);
 
     for graph_node in graph.values_mut() {
         for node in graph_node {
@@ -144,23 +186,32 @@ fn contract(vertex1: &String, vertex2: &String, graph: &mut HashMap<String, Vec<
     }
 }
 
-fn reduce_map(graph: &mut HashMap<String, Vec<GraphNode>>) {
-    let mut rng = rand::thread_rng();
+fn merge_nodes(vertex1_nodes: Vec<GraphNode>, mut vertex2_nodes: Vec<GraphNode>) -> Vec<GraphNode> {
+    let mut merged_nodes = Vec::<GraphNode>::from_iter(vertex1_nodes);
 
-    while graph.keys().len() > 2 {
-        let key_index = rng.gen_range(0usize..graph.keys().len());
-        let key = graph.keys().collect_vec()[key_index].clone();
-        let value_index = rng.gen_range(0usize..graph[&key].len());
-        let value = graph[&key][value_index].node.clone();
-
-        println!("Contracting {value} into {key}");
-        contract(&key, &value, graph);
-
-        for entry in &mut *graph {
-            if entry.1.iter().any(|x| x.node == *entry.0){
-                println!("common entry: {}", *entry.0);
-                let foo = 1;
+    for mut vertex2_node in vertex2_nodes {
+        if let Some(merged_node_index) = merged_nodes.iter().position(|x| x.node == vertex2_node.node) {
+            //Merge contractions
+            for merged_node_contraction_index in 0..merged_nodes[merged_node_index].contractions.len() {
+                for vertex2_node_contraction_index in (0..vertex2_node.contractions.len()).into_iter().rev() {
+                    if !contraction_equal(&merged_nodes[merged_node_index].contractions[merged_node_contraction_index],
+                        &vertex2_node.contractions[vertex2_node_contraction_index]) {
+                        merged_nodes[merged_node_index].contractions.push(vertex2_node.contractions.remove(vertex2_node_contraction_index))
+                    }
+                }
             }
+        } else {
+            if vertex2_node.contractions.is_empty() {
+                println!("foo");
+            }
+            merged_nodes.push(vertex2_node);
         }
     }
+
+    return merged_nodes;
+}
+
+fn contraction_equal(left: &(String, String), right: &(String, String)) -> bool {
+    return (*left.0 == *right.0 && *left.1 == *right.1) ||
+        (*left.0 == *right.1 && *left.1 == *right.0);
 }

@@ -1,0 +1,296 @@
+{
+  "ntq": [
+    {
+      "node": "bvb",
+      "contractions": []
+    },
+    {
+      "node": "jqt",
+      "contractions": []
+    },
+    {
+      "node": "xhk",
+      "contractions": []
+    },
+    {
+      "node": "hfx",
+      "contractions": []
+    }
+  ],
+  "lhk": [
+    {
+      "node": "cmg",
+      "contractions": []
+    },
+    {
+      "node": "frs",
+      "contractions": []
+    },
+    {
+      "node": "lsr",
+      "contractions": []
+    },
+    {
+      "node": "nvd",
+      "contractions": []
+    }
+  ],
+  "rzs": [
+    {
+      "node": "qnr",
+      "contractions": []
+    },
+    {
+      "node": "cmg",
+      "contractions": []
+    },
+    {
+      "node": "lsr",
+      "contractions": []
+    },
+    {
+      "node": "rsh",
+      "contractions": []
+    }
+  ],
+  "frs": [
+    {
+      "node": "qnr",
+      "contractions": []
+    },
+    {
+      "node": "rsh",
+      "contractions": []
+    },
+    {
+      "node": "lhk",
+      "contractions": []
+    },
+    {
+      "node": "lsr",
+      "contractions": []
+    }
+  ],
+  "cmg": [
+    {
+      "node": "bvb",
+      "contractions": []
+    },
+    {
+      "node": "qnr",
+      "contractions": []
+    },
+    {
+      "node": "rzs",
+      "contractions": []
+    },
+    {
+      "node": "lhk",
+      "contractions": []
+    },
+    {
+      "node": "nvd",
+      "contractions": []
+    }
+  ],
+  "xhk": [
+    {
+      "node": "bvb",
+      "contractions": []
+    },
+    {
+      "node": "ntq",
+      "contractions": []
+    },
+    {
+      "node": "hfx",
+      "contractions": []
+    },
+    {
+      "node": "rhn",
+      "contractions": []
+    },
+    {
+      "node": "jqt",
+      "contractions": []
+    }
+  ],
+  "rhn": [
+    {
+      "node": "bvb",
+      "contractions": []
+    },
+    {
+      "node": "hfx",
+      "contractions": []
+    },
+    {
+      "node": "xhk",
+      "contractions": []
+    },
+    {
+      "node": "jqt",
+      "contractions": []
+    }
+  ],
+  "rsh": [
+    {
+      "node": "rzs",
+      "contractions": []
+    },
+    {
+      "node": "lsr",
+      "contractions": []
+    },
+    {
+      "node": "frs",
+      "contractions": []
+    },
+    {
+      "node": "pzl",
+      "contractions": []
+    }
+  ],
+  "bvb": [
+    {
+      "node": "ntq",
+      "contractions": []
+    },
+    {
+      "node": "cmg",
+      "contractions": []
+    },
+    {
+      "node": "xhk",
+      "contractions": []
+    },
+    {
+      "node": "hfx",
+      "contractions": []
+    },
+    {
+      "node": "rhn",
+      "contractions": []
+    }
+  ],
+  "pzl": [
+    {
+      "node": "hfx",
+      "contractions": []
+    },
+    {
+      "node": "rsh",
+      "contractions": []
+    },
+    {
+      "node": "lsr",
+      "contractions": []
+    },
+    {
+      "node": "nvd",
+      "contractions": []
+    }
+  ],
+  "hfx": [
+    {
+      "node": "bvb",
+      "contractions": []
+    },
+    {
+      "node": "ntq",
+      "contractions": []
+    },
+    {
+      "node": "pzl",
+      "contractions": []
+    },
+    {
+      "node": "rhn",
+      "contractions": []
+    },
+    {
+      "node": "xhk",
+      "contractions": []
+    }
+  ],
+  "nvd": [
+    {
+      "node": "qnr",
+      "contractions": []
+    },
+    {
+      "node": "cmg",
+      "contractions": []
+    },
+    {
+      "node": "lhk",
+      "contractions": []
+    },
+    {
+      "node": "pzl",
+      "contractions": []
+    },
+    {
+      "node": "jqt",
+      "contractions": []
+    }
+  ],
+  "lsr": [
+    {
+      "node": "rzs",
+      "contractions": []
+    },
+    {
+      "node": "rsh",
+      "contractions": []
+    },
+    {
+      "node": "lhk",
+      "contractions": []
+    },
+    {
+      "node": "pzl",
+      "contractions": []
+    },
+    {
+      "node": "frs",
+      "contractions": []
+    }
+  ],
+  "qnr": [
+    {
+      "node": "cmg",
+      "contractions": []
+    },
+    {
+      "node": "rzs",
+      "contractions": []
+    },
+    {
+      "node": "frs",
+      "contractions": []
+    },
+    {
+      "node": "nvd",
+      "contractions": []
+    }
+  ],
+  "jqt": [
+    {
+      "node": "ntq",
+      "contractions": []
+    },
+    {
+      "node": "xhk",
+      "contractions": []
+    },
+    {
+      "node": "rhn",
+      "contractions": []
+    },
+    {
+      "node": "nvd",
+      "contractions": []
+    }
+  ]
+}
