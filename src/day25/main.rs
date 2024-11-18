@@ -1,11 +1,11 @@
 #![allow(clippy::needless_return)]
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use itertools::Itertools;
-use num_format::Locale::it;
+use num_format::Locale::{it, se};
 use rand::Rng;
 use serde_with::serde_derive::{Deserialize, Serialize};
 
@@ -49,14 +49,14 @@ fn main() {
     let data = parse_data(&path);
 
     let mut graph: HashMap::<String, Vec<GraphNode>> = HashMap::<String, Vec<GraphNode>>::new();
-    for (src, connections) in data {
-        if !graph.contains_key(&src) {
+    for (src, connections) in &data {
+        if !graph.contains_key(src) {
             graph.insert(src.clone(), Vec::<GraphNode>::new());
         }
 
         for connection in connections {
-            let node_list = graph.get_mut(&src).unwrap();
-            if node_list.iter().all(|x| x.node != connection) {
+            let node_list = graph.get_mut(src).unwrap();
+            if node_list.iter().all(|x| x.node != *connection) {
                 node_list.push(GraphNode {
                     node: connection.clone(),
                     original_node: connection.clone(),
@@ -66,12 +66,12 @@ fn main() {
             }
 
             //Add the complement mapping
-            if !graph.contains_key(&connection) {
+            if !graph.contains_key(connection) {
                 graph.insert(connection.clone(), Vec::<GraphNode>::new());
             }
 
-            let node_list = graph.get_mut(&connection).unwrap();
-            if node_list.iter().all(|x| x.node != src) {
+            let node_list = graph.get_mut(connection).unwrap();
+            if node_list.iter().all(|x| x.node != *src) {
                 node_list.push(GraphNode {
                     node: src.clone(),
                     original_node: src.clone(),
@@ -86,53 +86,34 @@ fn main() {
     graph_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
 
     let num_cuts = 3usize;
-    let max_iterations = 10_000usize;
+    let iterations = 10_000usize;
     let mut found = false;
-    let mut optimal_min_graph = graph.clone();
+    let mut optimal_cuts = Vec::<UnorderedPair<String>>::new();
+    let mut optimal_set_cardinality_product = usize::MAX;
 
-    for _ in 0usize..max_iterations {
+    for _ in 0usize..iterations {
         let mut reduced_graph = graph.clone();
         reduce_map(&mut reduced_graph);
 
-        if reduced_graph.values().collect_vec()[0][0].contractions.len() == num_cuts {
+        let final_contractions = reduced_graph.values().collect_vec()[0][0].contractions.clone();
+
+        if final_contractions.len() == num_cuts {
             found = true;
-            optimal_min_graph = reduced_graph;
-            break;
+
+            let mut disjointed_graph = data.clone();
+            cut_graph(&final_contractions, &mut disjointed_graph);
+            let vertex_sets = get_disjoint_sets(&disjointed_graph);
+            let set_cardinality_product = vertex_sets.iter().map(|x| x.iter().count()).product::<usize>();
+
+            if vertex_sets.len() == 2 && set_cardinality_product < optimal_set_cardinality_product {
+                optimal_cuts = final_contractions.clone();
+                optimal_set_cardinality_product = set_cardinality_product;
+            }
         }
     }
 
-    let mut result_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\results.txt"#).unwrap();
-    result_file.write(serde_json::to_string_pretty(&optimal_min_graph).unwrap().replace("\n", "\r\n").as_ref());
-    result_file.flush();
-
-    /*
-    let a = "a".to_string();
-    let b = "b".to_string();
-    let c = "c".to_string();
-    let d = "d".to_string();
-    let e = "e".to_string();
-    let f = "f".to_string();
-    let g = "g".to_string();
-    let h = "h".to_string();
-    let i = "i".to_string();
-
-    contract(&c, &a, &a, &mut graph);
-    contract(&c, &b, &b, &mut graph);
-    contract(&g, &e, &e, &mut graph);
-    contract(&g, &f, &f, &mut graph);
-    contract(&d, &g, &g, &mut graph);
-    contract(&d, &i, &i, &mut graph);
-    contract(&c, &h, &h, &mut graph);
-
-    println!("Results: {:?}", graph.keys().collect_vec());
-    let mut result_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\results.txt"#).unwrap();
-    result_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
-    result_file.flush();
-     */
-
-    if !found {
-        println!("Solution not found");
-    }
+    println!("Wires to cut: {:?}", optimal_cuts);
+    println!("Optimal set cardinality product: {optimal_set_cardinality_product}");
 }
 
 fn parse_data(path: &Path) -> HashMap<String, HashSet<String>> {
@@ -277,4 +258,37 @@ fn merge_nodes(vertex1_nodes: Vec<GraphNode>, mut vertex2_nodes: Vec<GraphNode>)
     }
 
     return merged_nodes;
+}
+
+fn cut_graph(cuts: &Vec<UnorderedPair<String>>, graph: &mut HashMap<String, HashSet<String>>) {
+    for cut in cuts {
+        graph.get_mut(&cut.left).unwrap().remove(&cut.right);
+        graph.get_mut(&cut.right).unwrap().remove(&cut.left);
+    }
+}
+
+fn get_disjoint_sets(cut_graph: &HashMap<String, HashSet<String>>) -> Vec<HashSet<String>> {
+    let mut disjoint_sets = Vec::<HashSet<String>>::new();
+
+    for entry in cut_graph {
+        if disjoint_sets.iter().all(|x| !x.contains(entry.0)) {
+            let mut vertex_set = HashSet::<String>::new();
+            vertex_set.insert(entry.0.clone());
+
+            //BFS
+            let mut work_queue = VecDeque::<&String>::from_iter(entry.1);
+            while work_queue.iter().count() > 0 {
+                let work_item = work_queue.pop_front().unwrap();
+
+                if !vertex_set.contains(work_item) {
+                    vertex_set.insert(work_item.clone());
+                    work_queue.extend(&cut_graph[work_item]);
+                }
+            }
+
+            disjoint_sets.push(vertex_set);
+        }
+    }
+
+    return disjoint_sets;
 }
