@@ -2,12 +2,15 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader};
 use std::path::Path;
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use itertools::Itertools;
-use num_format::Locale::{it, se};
+use num_format::{Locale, ToFormattedString};
 use rand::Rng;
 use serde_with::serde_derive::{Deserialize, Serialize};
+use rayon::prelude::*;
 
 #[derive(Debug, Hash, Clone, Serialize, Deserialize)]
 pub struct GraphNode {
@@ -45,7 +48,7 @@ impl<T: PartialEq> Eq for UnorderedPair<T>{
 }
 
 fn main() {
-    let path = Path::new("src/day25/test_input.txt");
+    let path = Path::new("src/day25/input.txt");
     let data = parse_data(&path);
 
     let mut graph: HashMap::<String, Vec<GraphNode>> = HashMap::<String, Vec<GraphNode>>::new();
@@ -82,38 +85,70 @@ fn main() {
         }
     }
 
-    let mut graph_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\graph.txt"#).unwrap();
-    graph_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
-
-    let num_cuts = 3usize;
+    //Perform optimization
     let iterations = 10_000usize;
-    let mut found = false;
-    let mut optimal_cuts = Vec::<UnorderedPair<String>>::new();
-    let mut optimal_set_cardinality_product = usize::MAX;
+    let optimal_update_iteration = AtomicUsize::new(0usize);
+    let optimal_cuts: Arc<Mutex<Vec<UnorderedPair<String>>>> = Arc::new(Mutex::new(Vec::new()));
+    let optimal_set_cardinality_product = AtomicUsize::new(usize::MAX);
+    let iteration_count = AtomicUsize::new(0usize);
+    let exit_early = AtomicBool::new(false);
 
-    for _ in 0usize..iterations {
-        let mut reduced_graph = graph.clone();
-        reduce_map(&mut reduced_graph);
+    (0..iterations).into_par_iter()
+        .for_each(|_| {
+            let graph_copy = graph.clone();
+            trial(&data, graph_copy, &optimal_update_iteration, Arc::clone(&optimal_cuts), &optimal_set_cardinality_product, &iteration_count, &exit_early)
+        });
 
-        let final_contractions = reduced_graph.values().collect_vec()[0][0].contractions.clone();
+    //Output results
+    println!("----------------------------FINAL RESULT-----------------------------------------");
+    println!("Optimal wires: {:?}", optimal_cuts);
+    println!("Optimal set cardinality product: {:}", optimal_set_cardinality_product.load(Ordering::SeqCst).to_formatted_string(&Locale::en));
+    println!("---------------------------FINAL RESULT END---------------------------------------")
+}
 
-        if final_contractions.len() == num_cuts {
-            found = true;
+fn trial(original_graph: &HashMap<String, HashSet<String>>, mut graph: HashMap<String, Vec<GraphNode>>,
+         optimal_update_iteration: &AtomicUsize, optimal_cuts: Arc<Mutex<Vec<UnorderedPair<String>>>>,
+         optimal_set_cardinality_product: &AtomicUsize, iteration_concurrent: &AtomicUsize,
+         exit_early: &AtomicBool)
+{
+    let num_cuts = 3usize;
+    let convergence_threshold = 1000usize;
 
-            let mut disjointed_graph = data.clone();
-            cut_graph(&final_contractions, &mut disjointed_graph);
-            let vertex_sets = get_disjoint_sets(&disjointed_graph);
-            let set_cardinality_product = vertex_sets.iter().map(|x| x.iter().count()).product::<usize>();
+    if exit_early.load(Ordering::SeqCst) {
+        return;
+    }
 
-            if vertex_sets.len() == 2 && set_cardinality_product < optimal_set_cardinality_product {
-                optimal_cuts = final_contractions.clone();
-                optimal_set_cardinality_product = set_cardinality_product;
-            }
+    let iteration = iteration_concurrent.fetch_add(1, Ordering::SeqCst);
+    let optimal_update_iteration_value = optimal_update_iteration.load(Ordering::SeqCst);
+    if optimal_update_iteration_value != 0 && iteration - optimal_update_iteration_value > convergence_threshold {
+        exit_early.store(true, Ordering::SeqCst);
+        return;
+    }
+
+    reduce_map(&mut graph);
+    let final_contractions = graph.values().collect_vec()[0][0].contractions.clone();
+
+    if final_contractions.len() == num_cuts {
+        let mut disjointed_graph = original_graph.clone();
+        cut_graph(&final_contractions, &mut disjointed_graph);
+        let vertex_sets = get_disjoint_sets(&disjointed_graph);
+        let set_cardinality_product = vertex_sets.iter().map(|x| x.iter().count()).product::<usize>();
+
+        let mut optimal_cuts_value = optimal_cuts.lock().unwrap();
+
+        if vertex_sets.len() == 2 && set_cardinality_product < optimal_set_cardinality_product.load(Ordering::SeqCst) {
+            optimal_update_iteration.store(iteration, Ordering::SeqCst);
+            *optimal_cuts_value = final_contractions.clone();
+            optimal_set_cardinality_product.store(set_cardinality_product, Ordering::SeqCst);
+
+            println!("----------------------------UPDATE START-----------------------------------------");
+            println!("Optimal wires: {:?}", optimal_cuts);
+            println!("Optimal set cardinality product: {:}", optimal_set_cardinality_product.load(Ordering::SeqCst).to_formatted_string(&Locale::en));
+            println!("-----------------------------UPDATE END------------------------------------------")
         }
     }
 
-    println!("Wires to cut: {:?}", optimal_cuts);
-    println!("Optimal set cardinality product: {optimal_set_cardinality_product}");
+    println!("Iteration {iteration} complete");
 }
 
 fn parse_data(path: &Path) -> HashMap<String, HashSet<String>> {
@@ -156,7 +191,6 @@ fn parse_data(path: &Path) -> HashMap<String, HashSet<String>> {
 
 fn reduce_map(graph: &mut HashMap<String, Vec<GraphNode>>) {
     let mut rng = rand::thread_rng();
-    let mut counter = 0usize;
 
     while graph.keys().len() > 2 {
         let key_index = rng.gen_range(0usize..graph.keys().len());
@@ -172,7 +206,6 @@ fn reduce_map(graph: &mut HashMap<String, Vec<GraphNode>>) {
         //result_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
         //result_file.flush();
         //println!("Counter = {counter}");
-        counter += 1;
     }
 }
 
@@ -189,7 +222,7 @@ fn contract(vertex1: &String, vertex2: &String, vertex2_original_node: &String, 
         });
         node.contracted = true;
 
-        let mut complement_node_connections = graph.get_mut(&node.node).unwrap();
+        let complement_node_connections = graph.get_mut(&node.node).unwrap();
         let index = complement_node_connections.iter().position(|x| x.node == *vertex2).unwrap();
         complement_node_connections[index].contractions.push(UnorderedPair {
             left: vertex2_original_node.clone(),
@@ -242,10 +275,10 @@ fn contract(vertex1: &String, vertex2: &String, vertex2_original_node: &String, 
     }
 }
 
-fn merge_nodes(vertex1_nodes: Vec<GraphNode>, mut vertex2_nodes: Vec<GraphNode>) -> Vec<GraphNode> {
+fn merge_nodes(vertex1_nodes: Vec<GraphNode>, vertex2_nodes: Vec<GraphNode>) -> Vec<GraphNode> {
     let mut merged_nodes = Vec::<GraphNode>::from_iter(vertex1_nodes);
 
-    for mut vertex2_node in vertex2_nodes {
+    for vertex2_node in vertex2_nodes {
         if let Some(merged_node_index) = merged_nodes.iter().position(|x| x.node == vertex2_node.node) {
             let mut merged_contractions = HashSet::<UnorderedPair<String>>::from_iter(merged_nodes[merged_node_index].contractions.clone());
             for contraction in vertex2_node.contractions {
