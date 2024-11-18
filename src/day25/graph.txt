@@ -1,52 +1,20 @@
 {
-  "cmg": [
+  "nvd": [
+    {
+      "node": "qnr",
+      "original_node": "qnr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "pzl",
+      "original_node": "pzl",
+      "contracted": false,
+      "contractions": []
+    },
     {
       "node": "lhk",
       "original_node": "lhk",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "qnr",
-      "original_node": "qnr",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "bvb",
-      "original_node": "bvb",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "rzs",
-      "original_node": "rzs",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "nvd",
-      "original_node": "nvd",
-      "contracted": false,
-      "contractions": []
-    }
-  ],
-  "rzs": [
-    {
-      "node": "rsh",
-      "original_node": "rsh",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "qnr",
-      "original_node": "qnr",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "lsr",
-      "original_node": "lsr",
       "contracted": false,
       "contractions": []
     },
@@ -55,73 +23,15 @@
       "original_node": "cmg",
       "contracted": false,
       "contractions": []
-    }
-  ],
-  "xhk": [
-    {
-      "node": "ntq",
-      "original_node": "ntq",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "bvb",
-      "original_node": "bvb",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "hfx",
-      "original_node": "hfx",
-      "contracted": false,
-      "contractions": []
     },
     {
       "node": "jqt",
       "original_node": "jqt",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "rhn",
-      "original_node": "rhn",
-      "contracted": false,
-      "contractions": []
-    }
-  ],
-  "ntq": [
-    {
-      "node": "jqt",
-      "original_node": "jqt",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "xhk",
-      "original_node": "xhk",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "bvb",
-      "original_node": "bvb",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "hfx",
-      "original_node": "hfx",
       "contracted": false,
       "contractions": []
     }
   ],
   "pzl": [
-    {
-      "node": "rsh",
-      "original_node": "rsh",
-      "contracted": false,
-      "contractions": []
-    },
     {
       "node": "lsr",
       "original_node": "lsr",
@@ -129,14 +39,20 @@
       "contractions": []
     },
     {
-      "node": "hfx",
-      "original_node": "hfx",
+      "node": "rsh",
+      "original_node": "rsh",
       "contracted": false,
       "contractions": []
     },
     {
       "node": "nvd",
       "original_node": "nvd",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "hfx",
+      "original_node": "hfx",
       "contracted": false,
       "contractions": []
     }
@@ -149,8 +65,8 @@
       "contractions": []
     },
     {
-      "node": "cmg",
-      "original_node": "cmg",
+      "node": "rzs",
+      "original_node": "rzs",
       "contracted": false,
       "contractions": []
     },
@@ -161,19 +77,45 @@
       "contractions": []
     },
     {
-      "node": "rzs",
-      "original_node": "rzs",
+      "node": "cmg",
+      "original_node": "cmg",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "xhk": [
+    {
+      "node": "rhn",
+      "original_node": "rhn",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "bvb",
+      "original_node": "bvb",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "hfx",
+      "original_node": "hfx",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "ntq",
+      "original_node": "ntq",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "jqt",
+      "original_node": "jqt",
       "contracted": false,
       "contractions": []
     }
   ],
   "lsr": [
-    {
-      "node": "pzl",
-      "original_node": "pzl",
-      "contracted": false,
-      "contractions": []
-    },
     {
       "node": "frs",
       "original_node": "frs",
@@ -193,16 +135,34 @@
       "contractions": []
     },
     {
+      "node": "pzl",
+      "original_node": "pzl",
+      "contracted": false,
+      "contractions": []
+    },
+    {
       "node": "rzs",
       "original_node": "rzs",
       "contracted": false,
       "contractions": []
     }
   ],
-  "hfx": [
+  "bvb": [
     {
-      "node": "pzl",
-      "original_node": "pzl",
+      "node": "xhk",
+      "original_node": "xhk",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "cmg",
+      "original_node": "cmg",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "rhn",
+      "original_node": "rhn",
       "contracted": false,
       "contractions": []
     },
@@ -213,6 +173,40 @@
       "contractions": []
     },
     {
+      "node": "hfx",
+      "original_node": "hfx",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "rzs": [
+    {
+      "node": "qnr",
+      "original_node": "qnr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "lsr",
+      "original_node": "lsr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "rsh",
+      "original_node": "rsh",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "cmg",
+      "original_node": "cmg",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "ntq": [
+    {
       "node": "xhk",
       "original_node": "xhk",
       "contracted": false,
@@ -221,6 +215,128 @@
     {
       "node": "bvb",
       "original_node": "bvb",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "jqt",
+      "original_node": "jqt",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "hfx",
+      "original_node": "hfx",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "cmg": [
+    {
+      "node": "qnr",
+      "original_node": "qnr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "bvb",
+      "original_node": "bvb",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "rzs",
+      "original_node": "rzs",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "nvd",
+      "original_node": "nvd",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "lhk",
+      "original_node": "lhk",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "rsh": [
+    {
+      "node": "frs",
+      "original_node": "frs",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "lsr",
+      "original_node": "lsr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "pzl",
+      "original_node": "pzl",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "rzs",
+      "original_node": "rzs",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "jqt": [
+    {
+      "node": "xhk",
+      "original_node": "xhk",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "ntq",
+      "original_node": "ntq",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "nvd",
+      "original_node": "nvd",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "rhn",
+      "original_node": "rhn",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "hfx": [
+    {
+      "node": "xhk",
+      "original_node": "xhk",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "bvb",
+      "original_node": "bvb",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "ntq",
+      "original_node": "ntq",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "pzl",
+      "original_node": "pzl",
       "contracted": false,
       "contractions": []
     },
@@ -239,12 +355,6 @@
       "contractions": []
     },
     {
-      "node": "cmg",
-      "original_node": "cmg",
-      "contracted": false,
-      "contractions": []
-    },
-    {
       "node": "lsr",
       "original_node": "lsr",
       "contracted": false,
@@ -255,146 +365,10 @@
       "original_node": "nvd",
       "contracted": false,
       "contractions": []
-    }
-  ],
-  "rsh": [
-    {
-      "node": "pzl",
-      "original_node": "pzl",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "frs",
-      "original_node": "frs",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "rzs",
-      "original_node": "rzs",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "lsr",
-      "original_node": "lsr",
-      "contracted": false,
-      "contractions": []
-    }
-  ],
-  "jqt": [
-    {
-      "node": "ntq",
-      "original_node": "ntq",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "xhk",
-      "original_node": "xhk",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "rhn",
-      "original_node": "rhn",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "nvd",
-      "original_node": "nvd",
-      "contracted": false,
-      "contractions": []
-    }
-  ],
-  "nvd": [
-    {
-      "node": "pzl",
-      "original_node": "pzl",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "lhk",
-      "original_node": "lhk",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "qnr",
-      "original_node": "qnr",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "jqt",
-      "original_node": "jqt",
-      "contracted": false,
-      "contractions": []
     },
     {
       "node": "cmg",
       "original_node": "cmg",
-      "contracted": false,
-      "contractions": []
-    }
-  ],
-  "frs": [
-    {
-      "node": "rsh",
-      "original_node": "rsh",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "lhk",
-      "original_node": "lhk",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "lsr",
-      "original_node": "lsr",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "qnr",
-      "original_node": "qnr",
-      "contracted": false,
-      "contractions": []
-    }
-  ],
-  "bvb": [
-    {
-      "node": "ntq",
-      "original_node": "ntq",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "xhk",
-      "original_node": "xhk",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "hfx",
-      "original_node": "hfx",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "cmg",
-      "original_node": "cmg",
-      "contracted": false,
-      "contractions": []
-    },
-    {
-      "node": "rhn",
-      "original_node": "rhn",
       "contracted": false,
       "contractions": []
     }
@@ -407,12 +381,6 @@
       "contractions": []
     },
     {
-      "node": "jqt",
-      "original_node": "jqt",
-      "contracted": false,
-      "contractions": []
-    },
-    {
       "node": "bvb",
       "original_node": "bvb",
       "contracted": false,
@@ -421,6 +389,38 @@
     {
       "node": "hfx",
       "original_node": "hfx",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "jqt",
+      "original_node": "jqt",
+      "contracted": false,
+      "contractions": []
+    }
+  ],
+  "frs": [
+    {
+      "node": "lhk",
+      "original_node": "lhk",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "lsr",
+      "original_node": "lsr",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "rsh",
+      "original_node": "rsh",
+      "contracted": false,
+      "contractions": []
+    },
+    {
+      "node": "qnr",
+      "original_node": "qnr",
       "contracted": false,
       "contractions": []
     }

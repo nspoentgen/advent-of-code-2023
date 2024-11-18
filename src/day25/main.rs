@@ -85,16 +85,17 @@ fn main() {
     let mut graph_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\graph.txt"#).unwrap();
     graph_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
 
-    let iterations = 10_000usize;
-    let mut optimal_min_lines = usize::MAX;
+    let num_cuts = 3usize;
+    let max_iterations = 10_000usize;
+    let mut found = false;
     let mut optimal_min_graph = graph.clone();
 
-    for _ in 0usize..iterations {
+    for _ in 0usize..max_iterations {
         let mut reduced_graph = graph.clone();
         reduce_map(&mut reduced_graph);
 
-        if reduced_graph.values().map(|x| x.iter().map(|y| y.contractions.len()).sum::<usize>()).sum::<usize>() == 2usize {
-            optimal_min_lines = 2;
+        if reduced_graph.values().collect_vec()[0][0].contractions.len() == num_cuts {
+            found = true;
             optimal_min_graph = reduced_graph;
             break;
         }
@@ -128,6 +129,10 @@ fn main() {
     result_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
     result_file.flush();
      */
+
+    if !found {
+        println!("Solution not found");
+    }
 }
 
 fn parse_data(path: &Path) -> HashMap<String, HashSet<String>> {

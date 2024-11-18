@@ -1,26 +1,42 @@
 {
-  "ntq": [
+  "xhk": [
     {
-      "node": "jqt",
-      "original_node": "jqt",
-      "contracted": false,
+      "node": "frs",
+      "original_node": "cmg",
+      "contracted": true,
       "contractions": [
         {
-          "left": "xhk",
-          "right": "ntq"
+          "left": "hfx",
+          "right": "pzl"
+        },
+        {
+          "left": "bvb",
+          "right": "cmg"
+        },
+        {
+          "left": "nvd",
+          "right": "jqt"
         }
       ]
     }
   ],
-  "jqt": [
+  "frs": [
     {
-      "node": "ntq",
-      "original_node": "ntq",
-      "contracted": false,
+      "node": "xhk",
+      "original_node": "hfx",
+      "contracted": true,
       "contractions": [
         {
-          "left": "xhk",
-          "right": "ntq"
+          "left": "hfx",
+          "right": "pzl"
+        },
+        {
+          "left": "nvd",
+          "right": "jqt"
+        },
+        {
+          "left": "bvb",
+          "right": "cmg"
         }
       ]
     }
