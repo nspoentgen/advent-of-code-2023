@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use itertools::Itertools;
+use num_format::Locale::it;
 use rand::Rng;
 use serde_with::serde_derive::{Deserialize, Serialize};
 
@@ -84,12 +85,49 @@ fn main() {
     let mut graph_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\graph.txt"#).unwrap();
     graph_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
 
-    for _ in 0usize..1 {
-        let mut fresh_graph = graph.clone();
-        reduce_map(&mut fresh_graph);
-        println!("Results: {:?}", fresh_graph.keys().collect_vec());
+    let iterations = 10_000usize;
+    let mut optimal_min_lines = usize::MAX;
+    let mut optimal_min_graph = graph.clone();
+
+    for _ in 0usize..iterations {
+        let mut reduced_graph = graph.clone();
+        reduce_map(&mut reduced_graph);
+
+        if reduced_graph.values().map(|x| x.iter().map(|y| y.contractions.len()).sum::<usize>()).sum::<usize>() == 2usize {
+            optimal_min_lines = 2;
+            optimal_min_graph = reduced_graph;
+            break;
+        }
     }
 
+    let mut result_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\results.txt"#).unwrap();
+    result_file.write(serde_json::to_string_pretty(&optimal_min_graph).unwrap().replace("\n", "\r\n").as_ref());
+    result_file.flush();
+
+    /*
+    let a = "a".to_string();
+    let b = "b".to_string();
+    let c = "c".to_string();
+    let d = "d".to_string();
+    let e = "e".to_string();
+    let f = "f".to_string();
+    let g = "g".to_string();
+    let h = "h".to_string();
+    let i = "i".to_string();
+
+    contract(&c, &a, &a, &mut graph);
+    contract(&c, &b, &b, &mut graph);
+    contract(&g, &e, &e, &mut graph);
+    contract(&g, &f, &f, &mut graph);
+    contract(&d, &g, &g, &mut graph);
+    contract(&d, &i, &i, &mut graph);
+    contract(&c, &h, &h, &mut graph);
+
+    println!("Results: {:?}", graph.keys().collect_vec());
+    let mut result_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\results.txt"#).unwrap();
+    result_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
+    result_file.flush();
+     */
 }
 
 fn parse_data(path: &Path) -> HashMap<String, HashSet<String>> {
@@ -141,13 +179,13 @@ fn reduce_map(graph: &mut HashMap<String, Vec<GraphNode>>) {
         let value = graph[&key][value_index].node.clone();
         let value_original_node = &graph[&key][value_index].original_node.clone();
 
-        println!("Contracting {value} into {key}");
+        //println!("Contracting {value} into {key}");
         contract(&key, &value, value_original_node, graph);
 
-        let mut result_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\results.txt"#).unwrap();
-        result_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
-        result_file.flush();
-        println!("Counter = {counter}");
+        //let mut result_file = File::create(r#"D:\Users\Nicolas\Documents\RustProjects\advent-of-code-2023\src\day25\results.txt"#).unwrap();
+        //result_file.write(serde_json::to_string_pretty(&graph).unwrap().replace("\n", "\r\n").as_ref());
+        //result_file.flush();
+        //println!("Counter = {counter}");
         counter += 1;
     }
 }
@@ -158,12 +196,20 @@ fn contract(vertex1: &String, vertex2: &String, vertex2_original_node: &String, 
     let vertex1_nodes = graph.remove(vertex1).unwrap();
     let mut vertex2_nodes = graph.remove(vertex2).unwrap();
 
-    for node in vertex2_nodes.iter_mut().filter(|x| !x.contracted) {
+    for node in vertex2_nodes.iter_mut().filter(|x| !x.contracted && x.node != *vertex1) {
         node.contractions.push(UnorderedPair {
             left: vertex2_original_node.clone(),
             right: node.original_node.clone()
         });
         node.contracted = true;
+
+        let mut complement_node_connections = graph.get_mut(&node.node).unwrap();
+        let index = complement_node_connections.iter().position(|x| x.node == *vertex2).unwrap();
+        complement_node_connections[index].contractions.push(UnorderedPair {
+            left: vertex2_original_node.clone(),
+            right: node.original_node.clone()
+        });
+        complement_node_connections[index].contracted = true;
     }
 
     //Merge vertex 2 nodes into vertex 1
@@ -211,18 +257,6 @@ fn contract(vertex1: &String, vertex2: &String, vertex2_original_node: &String, 
 }
 
 fn merge_nodes(vertex1_nodes: Vec<GraphNode>, mut vertex2_nodes: Vec<GraphNode>) -> Vec<GraphNode> {
-    for node in &vertex1_nodes {
-        if vertex1_nodes.iter().filter(|&x| x.node == node.node).count() > 1 {
-            println!("Foo");
-        }
-    }
-
-    for node in &vertex2_nodes {
-        if vertex2_nodes.iter().filter(|&x| x.node == node.node).count() > 1 {
-            println!("Foo");
-        }
-    }
-
     let mut merged_nodes = Vec::<GraphNode>::from_iter(vertex1_nodes);
 
     for mut vertex2_node in vertex2_nodes {
@@ -234,12 +268,6 @@ fn merge_nodes(vertex1_nodes: Vec<GraphNode>, mut vertex2_nodes: Vec<GraphNode>)
             merged_nodes[merged_node_index].contractions = merged_contractions.into_iter().collect_vec();
         } else {
             merged_nodes.push(vertex2_node);
-        }
-    }
-
-    for node in &merged_nodes {
-        if merged_nodes.iter().filter(|&x| x.node == node.node).count() > 1 {
-            println!("Foo");
         }
     }
 
