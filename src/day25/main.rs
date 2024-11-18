@@ -51,7 +51,7 @@ fn main() {
     let path = Path::new("src/day25/input.txt");
     let data = parse_data(&path);
 
-    let mut graph: HashMap::<String, Vec<GraphNode>> = HashMap::<String, Vec<GraphNode>>::new();
+    let mut graph = HashMap::<String, Vec<GraphNode>>::new();
     for (src, connections) in &data {
         if !graph.contains_key(src) {
             graph.insert(src.clone(), Vec::<GraphNode>::new());
@@ -194,7 +194,7 @@ fn reduce_map(graph: &mut HashMap<String, Vec<GraphNode>>) {
 
     while graph.keys().len() > 2 {
         let key_index = rng.gen_range(0usize..graph.keys().len());
-        let key = graph.keys().collect_vec()[key_index].clone();
+        let key = graph.keys().nth(key_index).unwrap().clone();
         let value_index = rng.gen_range(0usize..graph[&key].len());
         let value = graph[&key][value_index].node.clone();
         let value_original_node = &graph[&key][value_index].original_node.clone();
